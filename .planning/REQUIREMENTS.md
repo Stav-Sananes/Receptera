@@ -95,8 +95,49 @@
 
 ## Traceability
 
-*Populated by the roadmapper agent — maps each REQ-ID to a phase.*
+*Maps each REQ-ID to its phase. 42/42 v1 requirements mapped. No orphans.*
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| (pending roadmap creation) | | |
+| FND-01 | Phase 1: Foundation | Pending |
+| FND-02 | Phase 1: Foundation | Pending |
+| FND-03 | Phase 1: Foundation | Pending |
+| FND-04 | Phase 1: Foundation | Pending |
+| FND-05 | Phase 1: Foundation | Pending |
+| FND-06 | Phase 1: Foundation | Pending |
+| STT-01 | Phase 2: Hebrew Streaming STT | Pending |
+| STT-02 | Phase 2: Hebrew Streaming STT | Pending |
+| STT-03 | Phase 2: Hebrew Streaming STT | Pending |
+| STT-04 | Phase 2: Hebrew Streaming STT | Pending |
+| STT-05 | Phase 2: Hebrew Streaming STT | Pending |
+| STT-06 | Phase 2: Hebrew Streaming STT | Pending |
+| LLM-01 | Phase 3: Hebrew Suggestion LLM | Pending |
+| LLM-02 | Phase 3: Hebrew Suggestion LLM | Pending |
+| LLM-03 | Phase 3: Hebrew Suggestion LLM | Pending |
+| LLM-04 | Phase 3: Hebrew Suggestion LLM | Pending |
+| LLM-05 | Phase 3: Hebrew Suggestion LLM | Pending |
+| LLM-06 | Phase 3: Hebrew Suggestion LLM | Pending |
+| RAG-01 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| RAG-02 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| RAG-03 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| RAG-04 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| RAG-05 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| RAG-06 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| INT-01 | Phase 5: Hot-Path Integration | Pending |
+| INT-02 | Phase 5: Hot-Path Integration | Pending |
+| INT-03 | Phase 5: Hot-Path Integration | Pending |
+| INT-04 | Phase 5: Hot-Path Integration | Pending |
+| INT-05 | Phase 5: Hot-Path Integration | Pending |
+| FE-01 | Phase 6: Browser Sidebar Frontend | Pending |
+| FE-02 | Phase 6: Browser Sidebar Frontend | Pending |
+| FE-03 | Phase 6: Browser Sidebar Frontend | Pending |
+| FE-04 | Phase 6: Browser Sidebar Frontend | Pending |
+| FE-05 | Phase 6: Browser Sidebar Frontend | Pending |
+| FE-06 | Phase 6: Browser Sidebar Frontend | Pending |
+| FE-07 | Phase 6: Browser Sidebar Frontend | Pending |
+| FE-08 | Phase 6: Browser Sidebar Frontend | Pending |
+| DEMO-01 | Phase 7: Polish & Demo | Pending |
+| DEMO-02 | Phase 7: Polish & Demo | Pending |
+| DEMO-03 | Phase 7: Polish & Demo | Pending |
+| DEMO-04 | Phase 7: Polish & Demo | Pending |
+| DEMO-05 | Phase 7: Polish & Demo | Pending |
