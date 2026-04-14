@@ -51,6 +51,15 @@ If everything else fails, this must work. Hebrew + local + live-latency is the m
 - **Transport:** WebRTC (browser mic) via LiveKit or bare WebRTC; no SIP/telephony in v1.
 - **Frontend:** Browser sidebar (exact framework TBD — React + Vite likely).
 
+**Available Hebrew tooling (via `skills-il`):** The following Claude skills are installed globally and should be invoked by the relevant phases:
+- `hebrew-rtl-best-practices` — RTL layout, bidi rendering, mixed-script handling (Frontend phase)
+- `hebrew-tailwind-preset` — Tailwind config with Hebrew fonts, RTL utilities (Frontend phase)
+- `hebrew-i18n` — i18n scaffolding, locale files, string extraction (Frontend phase)
+- `hebrew-nlp-toolkit` — Hebrew-aware tokenization, chunking, normalization (RAG phase — directly addresses pitfall #8)
+- `israeli-accessibility-compliance` — IL Accessibility Regulations checklist (Polish phase)
+- `hebrew-content-writer` — Hebrew README, landing copy, error messages (Polish phase)
+- `hebrew-document-generator` — test KB docs for RAG evaluation (RAG phase)
+
 **Hebrew TTS gap:** No production-quality open-source Hebrew TTS exists today. This validates the decision to skip TTS in v1 and start with a co-pilot that only needs STT + LLM. Edge-TTS (free Microsoft wrapper) is the fallback for the eventual autonomous mode.
 
 **Monetization roadmap (informational, not v1 scope):** Open-core playbook validated by n8n ($40M ARR), Supabase ($70M ARR), PostHog ($920M valuation). Free self-hosted OSS → hosted cloud tier → business/agency tier → enterprise. Not building any of this in Milestone 1.
