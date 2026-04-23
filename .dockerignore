@@ -1,0 +1,48 @@
+# Git + VCS
+.git/
+.gitignore
+.github/
+
+# Model weights — mounted via volume, NEVER baked into image
+**/*.bin
+**/*.safetensors
+**/*.ct2
+**/*.gguf
+**/*.pt
+**/*.pth
+models/
+.receptra/
+
+# User data
+data/
+knowledge/*
+!knowledge/.gitkeep
+
+# Dev artifacts
+node_modules/
+dist/
+build/
+__pycache__/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Docs + planning (not needed in image)
+docs/
+.planning/
+README*.md
+CONTRIBUTING.md
+LICENSE
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp

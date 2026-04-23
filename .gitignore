@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+frontend/dist/
+frontend/.vite/
+
+# Env files — NEVER commit real secrets
+.env
+.env.local
+.env.*.local
+
+# Model weights (mounted via volume from ~/.receptra/models/; never committed)
+*.bin
+*.safetensors
+*.ct2
+*.gguf
+*.pt
+*.pth
+models/
+
+# User knowledge base (per-deployment data)
+knowledge/*
+!knowledge/.gitkeep
+!knowledge/sample/
+!knowledge/sample/**
+
+# Docker runtime data
+data/
+.receptra/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Logs
+*.log
+logs/
