@@ -10,7 +10,7 @@
 - [ ] **FND-02**: Docker Compose stack (arm64-compatible) starts the full system with a single command
 - [ ] **FND-03**: Model download step (separate from `docker compose up`) fetches ivrit.ai Whisper, DictaLM, and BGE-M3 to a mounted volume with progress output
 - [ ] **FND-04**: Backend and frontend scaffolds produce a healthy `/healthz` endpoint and a reachable empty sidebar page
-- [ ] **FND-05**: Apache 2.0 LICENSE, README.md (English + Hebrew), and CONTRIBUTING.md exist at repo root
+- [x] **FND-05**: Apache 2.0 LICENSE, README.md (English + Hebrew), and CONTRIBUTING.md exist at repo root
 - [ ] **FND-06**: CI pipeline runs lint + type-check + license allowlist check on every commit
 
 ### STT (Hebrew Streaming Speech-to-Text)
@@ -103,7 +103,7 @@
 | FND-02 | Phase 1: Foundation | Pending |
 | FND-03 | Phase 1: Foundation | Pending |
 | FND-04 | Phase 1: Foundation | Pending |
-| FND-05 | Phase 1: Foundation | Pending |
+| FND-05 | Phase 1: Foundation | Complete (01-01) |
 | FND-06 | Phase 1: Foundation | Pending |
 | STT-01 | Phase 2: Hebrew Streaming STT | Pending |
 | STT-02 | Phase 2: Hebrew Streaming STT | Pending |

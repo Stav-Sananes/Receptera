@@ -30,7 +30,7 @@
 **Skills**: none required (foundation is stack-agnostic; Hebrew copy handled in Phase 7).
 **Pitfalls addressed**: #6 (arm64 wheels), #12 (model footprint split from image), #15 (license creep).
 **Plans**: 6 plans
-- [ ] 01-01-PLAN.md — Repo root files: LICENSE, bilingual READMEs, CONTRIBUTING, .gitignore, .dockerignore, .env.example, knowledge/ + docs/ skeletons (FND-05)
+- [x] 01-01-PLAN.md — Repo root files: LICENSE, bilingual READMEs, CONTRIBUTING, .gitignore, .dockerignore, .env.example, knowledge/ + docs/ skeletons (FND-05)
 - [ ] 01-02-PLAN.md — Backend scaffold: Python 3.12 + uv + FastAPI + pydantic-settings + /healthz + Wave-0 pytest smoke (FND-01, FND-04)
 - [ ] 01-03-PLAN.md — Frontend scaffold: Vite 6 + React 19 + TS + Tailwind v4, RTL index.html, empty Receptra sidebar, /api + /ws dev proxy (FND-01, FND-04)
 - [ ] 01-04-PLAN.md — Docker Compose (arm64): chromadb + backend + frontend with healthcheck-gated chain; Ollama intentionally on host per OPEN-1 (FND-02)
@@ -127,7 +127,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/6 | Plans created | - |
+| 1. Foundation | 1/6 | In progress | - |
 | 2. Hebrew Streaming STT | 0/0 | Not started | - |
 | 3. Hebrew Suggestion LLM | 0/0 | Not started | - |
 | 4. Hebrew RAG Knowledge Base | 0/0 | Not started | - |
