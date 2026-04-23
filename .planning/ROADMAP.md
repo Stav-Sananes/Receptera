@@ -29,7 +29,13 @@
   4. Repo root contains Apache 2.0 LICENSE, bilingual (EN + HE) README, and CONTRIBUTING.md.
 **Skills**: none required (foundation is stack-agnostic; Hebrew copy handled in Phase 7).
 **Pitfalls addressed**: #6 (arm64 wheels), #12 (model footprint split from image), #15 (license creep).
-**Plans**: TBD
+**Plans**: 6 plans
+- [ ] 01-01-PLAN.md — Repo root files: LICENSE, bilingual READMEs, CONTRIBUTING, .gitignore, .dockerignore, .env.example, knowledge/ + docs/ skeletons (FND-05)
+- [ ] 01-02-PLAN.md — Backend scaffold: Python 3.12 + uv + FastAPI + pydantic-settings + /healthz + Wave-0 pytest smoke (FND-01, FND-04)
+- [ ] 01-03-PLAN.md — Frontend scaffold: Vite 6 + React 19 + TS + Tailwind v4, RTL index.html, empty Receptra sidebar, /api + /ws dev proxy (FND-01, FND-04)
+- [ ] 01-04-PLAN.md — Docker Compose (arm64): chromadb + backend + frontend with healthcheck-gated chain; Ollama intentionally on host per OPEN-1 (FND-02)
+- [ ] 01-05-PLAN.md — Makefile + model download: hf CLI for Whisper + DictaLM GGUF + BGE-M3; DictaLM Modelfile + Qwen fallback; license-check wrapper (FND-03)
+- [ ] 01-06-PLAN.md — CI: ubuntu-latest lint + typecheck + test + compose-config + license allowlist; manual negative-gate regression workflow (FND-06)
 
 ### Phase 2: Hebrew Streaming STT
 **Goal**: A headless test harness can stream Hebrew PCM audio in and receive live partial + final Hebrew transcripts with measured latency and WER.
@@ -121,7 +127,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/0 | Not started | - |
+| 1. Foundation | 0/6 | Plans created | - |
 | 2. Hebrew Streaming STT | 0/0 | Not started | - |
 | 3. Hebrew Suggestion LLM | 0/0 | Not started | - |
 | 4. Hebrew RAG Knowledge Base | 0/0 | Not started | - |
