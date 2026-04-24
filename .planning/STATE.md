@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-24T07:44:34.118Z"
+last_updated: "2026-04-24T07:53:33.324Z"
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 5
+  percent: 83
 ---
 
 # Receptra — STATE.md
@@ -29,15 +29,15 @@ progress:
 ## Current Position
 
 Phase: 01-foundation — EXECUTING
-Plan: 01-04 complete; next is 01-05 (Makefile + model download) or 01-06 (CI, depends on 01-04 + 01-05)
+Plan: 01-05 complete; next is 01-06 (CI — last plan, depends on 01-04 + 01-05)
 
 - **Phase:** 01-foundation
-- **Plan:** 01-04 complete (Docker Compose stack: chromadb + backend + frontend with healthcheck-gated chain; backend + frontend Dockerfiles arm64 multi-stage non-root; Ollama intentionally host-native per OPEN-1; docs/docker.md ops runbook)
-- **Status:** Executing Phase 01-foundation (Wave 1 complete; Plans 01-02, 01-03, 01-04 of Wave 2 complete; Plan 01-05 Makefile and 01-06 CI follow)
-- **Progress:** [███████░░░] 67%
+- **Plan:** 01-05 complete (Makefile with Phase 1 targets + scripts/download_models.sh with hf CLI dispatcher + scripts/ollama/DictaLM3.Modelfile template + scripts/check_licenses.sh allowlist gate + docs/models.md; FND-03 satisfied; OPEN-1 host-Ollama `make up` + OPEN-2 Q4_K_M default locked)
+- **Status:** Executing Phase 01-foundation (Wave 1 complete; Plans 01-02, 01-03, 01-04, 01-05 complete; Plan 01-06 CI is the last plan)
+- **Progress:** [████████░░] 83%
 
 ```
-[████░░░] 67% — Phase 1 of 7 (4/6 plans)
+[████████░░] 83% — Phase 1 of 7 (5/6 plans)
 ```
 
 ## Performance Metrics
@@ -48,10 +48,11 @@ Plan: 01-04 complete; next is 01-05 (Makefile + model download) or 01-06 (CI, de
 | 01-foundation | 01-02 | ~9min | 3 | 11 | 2026-04-23 |
 | 01-foundation | 01-03 | ~20min | 2 | 16 | 2026-04-24 |
 | 01-foundation | 01-04 | ~15min | 3 | 6 | 2026-04-24 |
+| 01-foundation | 01-05 | ~8min | 2 | 5 | 2026-04-24 |
 
 - Phases completed: 0/7
-- Plans completed: 4
-- v1 requirements delivered: 4/42 (FND-01, FND-02, FND-04, FND-05 all complete)
+- Plans completed: 5
+- v1 requirements delivered: 5/42 (FND-01, FND-02, FND-03, FND-04, FND-05 all complete; FND-06 lands in Plan 01-06)
 
 ## Accumulated Context
 
@@ -80,6 +81,11 @@ Plan: 01-04 complete; next is 01-05 (Makefile + model download) or 01-06 (CI, de
 - Container images: non-root `receptra` user (uid 1001) in both backend (python:3.12-slim multi-stage + uv) and frontend (node:22-slim, Vite dev server in Phase 1; nginx static serve deferred to Phase 7) — Plan 01-04
 - Model weights mounted read-only (`${MODEL_DIR:-~/.receptra/models}:/models:ro`) into backend container — never baked into images (Plan 01-04)
 - `chromadb/chroma:1.5.8` image pinned; healthcheck on `/api/v2/heartbeat`, volume at `/data` (Plan 01-04)
+- OPEN-2 LOCKED: default DictaLM quant is Q4_K_M (16GB M2 reference hardware); Q5_K_M override via `DICTALM_QUANT` env var for 32GB+ Macs (Plan 01-05)
+- OPEN-1 ENFORCED in Makefile: `make up` pgrep-gates `ollama serve` on host (via `nohup` + /tmp log), then `docker compose up -d`. Ollama never enters compose (Plans 01-04 + 01-05)
+- Model downloads are separate from `docker compose up`: `make models` delegates to `scripts/download_models.sh` using hf CLI + ollama pull, resumable, ~11 GB total (FND-03, Plan 01-05)
+- DictaLM Ollama registration uses a Modelfile TEMPLATE with `__GGUF_PATH__` sed-substitution at ollama-create time — checked-in template is repo-portable, absolute paths resolved per contributor (Plan 01-05)
+- License allowlists single-source-of-truth in `scripts/check_licenses.sh`: verbatim research §5.4 (pip-licenses, both SPDX + long-form names) + §5.5 (license-checker, SPDX). `make licenses` + Plan 01-06 CI both invoke this script (Plan 01-05)
 
 ### Open Todos
 
@@ -99,8 +105,8 @@ Plan: 01-04 complete; next is 01-05 (Makefile + model download) or 01-06 (CI, de
 ## Session Continuity
 
 - **Last agent:** executor
-- **Last action:** Completed Plan 01-04 (Docker Compose + Dockerfiles). 6 files committed across 3 atomic commits (3ab2138 backend Dockerfile, 3e5af29 frontend Dockerfile, 11c06bc docker-compose.yml + docs/docker.md). FND-02 now complete. `docker compose config -q` passes; Ollama correctly absent from compose (regression guard holds). Runtime buildx validation deferred to Mac-local manual smoke (docker daemon not running in execution env).
-- **Next action:** `/gsd-execute-phase 1` continues with Plan 01-05 (Makefile + model download). Plan 01-06 (CI) is the last plan and depends on 01-04 + 01-05.
+- **Last action:** Completed Plan 01-05 (Makefile + model download orchestration). 5 files committed across 2 atomic commits (dc26343 Makefile; 50cefeb scripts/download_models.sh + scripts/ollama/DictaLM3.Modelfile + scripts/check_licenses.sh + docs/models.md). FND-03 now complete. All 12 `make -n <target>` dry-runs pass; `bash -n` syntax checks pass; download script dispatches to usage on bare invocation (Rule 1 bug-fix applied). Actual ~11 GB downloads deferred to Mac-local contributor smoke per autonomous-mode instruction.
+- **Next action:** `/gsd-execute-phase 1` continues with Plan 01-06 (CI — last plan; depends on 01-04 + 01-05). Phase 1 closes after 01-06.
 - **Last updated:** 2026-04-24
 
 **Planned Phase:** 1 (Foundation) — 6 plans — 2026-04-23T19:12:18.810Z
@@ -108,3 +114,4 @@ Plan: 01-04 complete; next is 01-05 (Makefile + model download) or 01-06 (CI, de
 **Plan 01-02 complete:** 2026-04-23 — commits 530b3bc, 8578d8e, 3bc6df2
 **Plan 01-03 complete:** 2026-04-24 — commits 64bcf99, 77b0d8f
 **Plan 01-04 complete:** 2026-04-24 — commits 3ab2138, 3e5af29, 11c06bc
+**Plan 01-05 complete:** 2026-04-24 — commits dc26343, 50cefeb
