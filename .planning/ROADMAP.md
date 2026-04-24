@@ -32,7 +32,7 @@
 **Plans**: 6 plans
 - [x] 01-01-PLAN.md — Repo root files: LICENSE, bilingual READMEs, CONTRIBUTING, .gitignore, .dockerignore, .env.example, knowledge/ + docs/ skeletons (FND-05)
 - [x] 01-02-PLAN.md — Backend scaffold: Python 3.12 + uv + FastAPI + pydantic-settings + /healthz + Wave-0 pytest smoke (FND-01 backend half, FND-04 backend half)
-- [ ] 01-03-PLAN.md — Frontend scaffold: Vite 6 + React 19 + TS + Tailwind v4, RTL index.html, empty Receptra sidebar, /api + /ws dev proxy (FND-01, FND-04)
+- [x] 01-03-PLAN.md — Frontend scaffold: Vite 6 + React 19 + TS + Tailwind v4, RTL index.html, empty Receptra sidebar, /api + /ws dev proxy (FND-01, FND-04)
 - [ ] 01-04-PLAN.md — Docker Compose (arm64): chromadb + backend + frontend with healthcheck-gated chain; Ollama intentionally on host per OPEN-1 (FND-02)
 - [ ] 01-05-PLAN.md — Makefile + model download: hf CLI for Whisper + DictaLM GGUF + BGE-M3; DictaLM Modelfile + Qwen fallback; license-check wrapper (FND-03)
 - [ ] 01-06-PLAN.md — CI: ubuntu-latest lint + typecheck + test + compose-config + license allowlist; manual negative-gate regression workflow (FND-06)
@@ -127,7 +127,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/6 | In progress | - |
+| 1. Foundation | 3/6 | In progress | - |
 | 2. Hebrew Streaming STT | 0/0 | Not started | - |
 | 3. Hebrew Suggestion LLM | 0/0 | Not started | - |
 | 4. Hebrew RAG Knowledge Base | 0/0 | Not started | - |
