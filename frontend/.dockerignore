@@ -1,0 +1,16 @@
+# Frontend-specific .dockerignore. Applied when `docker compose build frontend`
+# uses frontend/ as the context.
+
+node_modules/
+dist/
+.vite/
+coverage/
+
+# Env files
+.env
+.env.local
+
+# Dev artifacts
+README.md
+
+# Lockfile is required — do NOT exclude package-lock.json
