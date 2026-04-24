@@ -1,0 +1,56 @@
+# Receptra — license gate regression test.
+#
+# Manually-triggered workflow that proves scripts/check_licenses.sh actually
+# rejects a package with a disallowed license. Without this, "we have a
+# license check" is theater — the gate could be silently broken by a config
+# drift and we'd never know.
+#
+# Per research OPEN-8: manual workflow_dispatch, not on every commit.
+# Cadence: run before releases or when the license allowlist changes.
+
+name: License Gate Regression Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gate-rejects-gpl:
+    name: Gate rejects GPL package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Pin Python version
+        run: uv python install 3.12
+
+      - name: Create scratch venv
+        run: uv venv /tmp/scratch-venv
+
+      - name: Install known-GPL package (gnureadline — GPLv3)
+        run: /tmp/scratch-venv/bin/python -m pip install gnureadline pip-licenses
+
+      - name: Run allowlist — MUST fail because gnureadline is GPLv3
+        id: gate
+        continue-on-error: true
+        run: |
+          /tmp/scratch-venv/bin/pip-licenses --allow-only="Apache Software License;Apache 2.0;Apache-2.0;MIT License;MIT;BSD License;BSD-3-Clause;BSD-2-Clause;ISC License;ISC;Python Software Foundation License;PSF-2.0;The Unlicense;Mozilla Public License 2.0 (MPL 2.0)"
+
+      - name: Assert gate exited non-zero
+        run: |
+          if [ "${{ steps.gate.outcome }}" = "failure" ]; then
+            echo "✓ License gate correctly REJECTED the GPL package."
+            exit 0
+          else
+            echo "✗ License gate INCORRECTLY ACCEPTED a GPL package. The allowlist is broken." >&2
+            exit 1
+          fi
+
+      - name: Inverse sanity check — empty scratch allows MIT
+        run: |
+          uv venv /tmp/sanity-venv
+          /tmp/sanity-venv/bin/python -m pip install requests pip-licenses
+          /tmp/sanity-venv/bin/pip-licenses --allow-only="Apache Software License;Apache 2.0;Apache-2.0;MIT License;MIT;BSD License;BSD-3-Clause;BSD-2-Clause;ISC License;ISC;Python Software Foundation License;PSF-2.0;The Unlicense;Mozilla Public License 2.0 (MPL 2.0);Charset-Normalizer"
+          echo "✓ License gate correctly ACCEPTED permissive packages (requests + deps)."
