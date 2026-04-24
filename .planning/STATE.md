@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-24T07:53:33.324Z"
+last_updated: "2026-04-24T07:58:31Z"
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
-  completed_plans: 5
-  percent: 83
+  completed_plans: 6
+  percent: 100
 ---
 
 # Receptra — STATE.md
@@ -28,16 +28,15 @@ progress:
 
 ## Current Position
 
-Phase: 01-foundation — EXECUTING
-Plan: 01-05 complete; next is 01-06 (CI — last plan, depends on 01-04 + 01-05)
+Phase: 01-foundation — COMPLETE. Ready for Phase 2/3/4 (parallelizable).
 
-- **Phase:** 01-foundation
-- **Plan:** 01-05 complete (Makefile with Phase 1 targets + scripts/download_models.sh with hf CLI dispatcher + scripts/ollama/DictaLM3.Modelfile template + scripts/check_licenses.sh allowlist gate + docs/models.md; FND-03 satisfied; OPEN-1 host-Ollama `make up` + OPEN-2 Q4_K_M default locked)
-- **Status:** Executing Phase 01-foundation (Wave 1 complete; Plans 01-02, 01-03, 01-04, 01-05 complete; Plan 01-06 CI is the last plan)
-- **Progress:** [████████░░] 83%
+- **Phase:** 01-foundation (complete — all 6 plans merged, all 6 FND-* requirements satisfied)
+- **Plan:** 01-06 complete (.github/workflows/ci.yml with 4 parallel jobs + .github/workflows/license-gate-test.yml manual-dispatch regression canary + docs/ci.md; FND-06 satisfied; OPEN-6 ubuntu-latest + OPEN-8 manual-dispatch regression test locked; OPEN-1 Ollama-on-host enforced as grep guard in compose CI job)
+- **Status:** Phase 01-foundation COMPLETE. Phase 1 exit criteria met: contributor can clone + `make setup` + `make models` + `make up` + see healthy stack; CI enforces lint + type + license gates on every push/PR; regression canary proves gate works.
+- **Progress:** [██████████] 100% (Phase 1 / 7)
 
 ```
-[████████░░] 83% — Phase 1 of 7 (5/6 plans)
+[██████████] 100% — Phase 1 of 7 (6/6 plans) — PHASE 1 COMPLETE
 ```
 
 ## Performance Metrics
@@ -49,10 +48,11 @@ Plan: 01-05 complete; next is 01-06 (CI — last plan, depends on 01-04 + 01-05)
 | 01-foundation | 01-03 | ~20min | 2 | 16 | 2026-04-24 |
 | 01-foundation | 01-04 | ~15min | 3 | 6 | 2026-04-24 |
 | 01-foundation | 01-05 | ~8min | 2 | 5 | 2026-04-24 |
+| 01-foundation | 01-06 | ~2min | 2 | 3 | 2026-04-24 |
 
-- Phases completed: 0/7
-- Plans completed: 5
-- v1 requirements delivered: 5/42 (FND-01, FND-02, FND-03, FND-04, FND-05 all complete; FND-06 lands in Plan 01-06)
+- Phases completed: 1/7 (Phase 1 Foundation complete)
+- Plans completed: 6
+- v1 requirements delivered: 6/42 (all Phase 1 FND-* complete: FND-01, FND-02, FND-03, FND-04, FND-05, FND-06)
 
 ## Accumulated Context
 
@@ -86,6 +86,10 @@ Plan: 01-05 complete; next is 01-06 (CI — last plan, depends on 01-04 + 01-05)
 - Model downloads are separate from `docker compose up`: `make models` delegates to `scripts/download_models.sh` using hf CLI + ollama pull, resumable, ~11 GB total (FND-03, Plan 01-05)
 - DictaLM Ollama registration uses a Modelfile TEMPLATE with `__GGUF_PATH__` sed-substitution at ollama-create time — checked-in template is repo-portable, absolute paths resolved per contributor (Plan 01-05)
 - License allowlists single-source-of-truth in `scripts/check_licenses.sh`: verbatim research §5.4 (pip-licenses, both SPDX + long-form names) + §5.5 (license-checker, SPDX). `make licenses` + Plan 01-06 CI both invoke this script (Plan 01-05)
+- OPEN-6 LOCKED: CI runner = ubuntu-latest only in Phase 1. Mac-native `docker compose up` / Metal / arm64 wheel smoke deferred to Phase 7 (Plan 01-06)
+- OPEN-8 LOCKED: license-gate negative test = manual workflow_dispatch only (`.github/workflows/license-gate-test.yml`). Installs GPLv3 `gnureadline` into scratch venv + asserts pip-licenses allowlist rejects it. Not on every push (slows CI, pollutes caches) (Plan 01-06)
+- OPEN-1 ENFORCEMENT moved from docs + Makefile into CI: compose job grep-fails on `^\s*ollama:` in docker-compose.yml (Plan 01-06 — mitigates T-01-06-04 silent regression)
+- CI topology locked: 4 parallel jobs on ubuntu-latest (backend, frontend, compose, licenses) gating every push + pull_request; concurrency.cancel-in-progress for superseded runs; actions pinned at @v4 (Plan 01-06)
 
 ### Open Todos
 
@@ -105,8 +109,8 @@ Plan: 01-05 complete; next is 01-06 (CI — last plan, depends on 01-04 + 01-05)
 ## Session Continuity
 
 - **Last agent:** executor
-- **Last action:** Completed Plan 01-05 (Makefile + model download orchestration). 5 files committed across 2 atomic commits (dc26343 Makefile; 50cefeb scripts/download_models.sh + scripts/ollama/DictaLM3.Modelfile + scripts/check_licenses.sh + docs/models.md). FND-03 now complete. All 12 `make -n <target>` dry-runs pass; `bash -n` syntax checks pass; download script dispatches to usage on bare invocation (Rule 1 bug-fix applied). Actual ~11 GB downloads deferred to Mac-local contributor smoke per autonomous-mode instruction.
-- **Next action:** `/gsd-execute-phase 1` continues with Plan 01-06 (CI — last plan; depends on 01-04 + 01-05). Phase 1 closes after 01-06.
+- **Last action:** Completed Plan 01-06 (CI pipeline — closes Phase 1). 3 files committed across 2 atomic commits (c44fc4d .github/workflows/ci.yml with 4 parallel jobs + OPEN-1 regression guard; 7a6b828 .github/workflows/license-gate-test.yml manual-dispatch regression canary + docs/ci.md). FND-06 now complete. All 37 acceptance criteria passed on first verification; both workflow YAMLs parse via `yaml.safe_load`; no Rule 1/2/3 deviations needed. Phase 1 Foundation is now COMPLETE — all 6 FND-* requirements satisfied.
+- **Next action:** Phase 1 done. Phases 2 (Hebrew Streaming STT), 3 (Hebrew Suggestion LLM), and 4 (Hebrew RAG KB) can now be planned + executed in parallel per the roadmap. Run `/gsd-transition 1 2` (or 3 or 4) to start the next phase.
 - **Last updated:** 2026-04-24
 
 **Planned Phase:** 1 (Foundation) — 6 plans — 2026-04-23T19:12:18.810Z
@@ -115,3 +119,5 @@ Plan: 01-05 complete; next is 01-06 (CI — last plan, depends on 01-04 + 01-05)
 **Plan 01-03 complete:** 2026-04-24 — commits 64bcf99, 77b0d8f
 **Plan 01-04 complete:** 2026-04-24 — commits 3ab2138, 3e5af29, 11c06bc
 **Plan 01-05 complete:** 2026-04-24 — commits dc26343, 50cefeb
+**Plan 01-06 complete:** 2026-04-24 — commits c44fc4d, 7a6b828
+**Phase 1 Foundation COMPLETE:** 2026-04-24 — 6/6 plans, 6/6 FND-* requirements

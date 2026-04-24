@@ -8,7 +8,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Foundation** - Repo scaffold, Docker Compose on arm64, model download flow, healthchecks, CI, licensing
+- [x] **Phase 1: Foundation** - Repo scaffold, Docker Compose on arm64, model download flow, healthchecks, CI, licensing
 - [ ] **Phase 2: Hebrew Streaming STT** - faster-whisper + ivrit.ai turbo + Silero VAD streaming over WebSocket
 - [ ] **Phase 3: Hebrew Suggestion LLM** - DictaLM 3.0 via Ollama (Qwen 2.5 fallback) producing grounded structured suggestions
 - [ ] **Phase 4: Hebrew RAG Knowledge Base** - BGE-M3 + ChromaDB with Hebrew-aware chunking, ingest, and retrieval
@@ -35,7 +35,7 @@
 - [x] 01-03-PLAN.md — Frontend scaffold: Vite 6 + React 19 + TS + Tailwind v4, RTL index.html, empty Receptra sidebar, /api + /ws dev proxy (FND-01, FND-04)
 - [x] 01-04-PLAN.md — Docker Compose (arm64): chromadb + backend + frontend with healthcheck-gated chain; Ollama intentionally on host per OPEN-1 (FND-02)
 - [x] 01-05-PLAN.md — Makefile + model download: hf CLI for Whisper + DictaLM GGUF + BGE-M3; DictaLM Modelfile + Qwen fallback; license-check wrapper (FND-03)
-- [ ] 01-06-PLAN.md — CI: ubuntu-latest lint + typecheck + test + compose-config + license allowlist; manual negative-gate regression workflow (FND-06)
+- [x] 01-06-PLAN.md — CI: ubuntu-latest lint + typecheck + test + compose-config + license allowlist; manual negative-gate regression workflow (FND-06)
 
 ### Phase 2: Hebrew Streaming STT
 **Goal**: A headless test harness can stream Hebrew PCM audio in and receive live partial + final Hebrew transcripts with measured latency and WER.
@@ -127,7 +127,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 5/6 | In progress | - |
+| 1. Foundation | 6/6 | Complete | 2026-04-24 |
 | 2. Hebrew Streaming STT | 0/0 | Not started | - |
 | 3. Hebrew Suggestion LLM | 0/0 | Not started | - |
 | 4. Hebrew RAG Knowledge Base | 0/0 | Not started | - |
