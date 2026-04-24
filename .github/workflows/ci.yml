@@ -1,0 +1,149 @@
+# Receptra — Milestone 1 CI.
+#
+# Runs on every push + pull_request. Blocks merge on:
+#   - backend: ruff check, ruff format, mypy strict, pytest
+#   - frontend: eslint, tsc --noEmit, prettier check, production build
+#   - docker: docker compose config -q static validation
+#   - licenses: scripts/check_licenses.sh (pip-licenses + license-checker allowlist)
+#
+# Runner: ubuntu-latest only for Phase 1 (OPEN-6). Phase 7 can add macos-14
+# runners for a Mac-native compose smoke test if desired.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — lint + typecheck + test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Pin Python version
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-extras --frozen
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Mypy (strict)
+        run: uv run mypy src tests
+
+      - name: Pytest
+        run: uv run pytest tests/ -x --tb=short
+
+  frontend:
+    name: Frontend — lint + typecheck + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Prettier format check
+        run: npm run format:check
+
+      - name: Production build
+        run: npm run build
+
+      - name: Verify build output contains "Receptra"
+        run: |
+          test -f dist/index.html
+          grep -q "Receptra" dist/index.html
+
+  compose:
+    name: Docker Compose — static validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        env:
+          # Provide harmless defaults so ${VAR:-default} interpolations resolve.
+          MODEL_DIR: /tmp/receptra-models
+          CHROMA_HOST: http://chromadb:8000
+          OLLAMA_HOST: http://host.docker.internal:11434
+          BACKEND_PORT: "8080"
+          FRONTEND_PORT: "5173"
+          CHROMA_PORT: "8000"
+        run: docker compose config -q
+
+      - name: Assert no ollama service declared (OPEN-1 — Ollama on host)
+        run: |
+          if grep -qE "^\s*ollama:" docker-compose.yml; then
+            echo "ERROR: docker-compose.yml must NOT declare an ollama service (OPEN-1)." >&2
+            exit 1
+          fi
+
+  licenses:
+    name: Licenses — allowlist gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Pin Python version
+        run: uv python install 3.12
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --all-extras --frozen
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Run license allowlist gate
+        run: bash scripts/check_licenses.sh
