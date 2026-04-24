@@ -1,0 +1,19 @@
+# Receptra — Ollama Modelfile for DictaLM 3.0 Nemotron 12B Instruct.
+#
+# This file is a TEMPLATE. scripts/download_models.sh substitutes __GGUF_PATH__
+# with the absolute path to the downloaded GGUF file before running
+# `ollama create dictalm3 -f <rendered>`.
+#
+# The chat template is auto-detected from the GGUF's tokenizer.chat_template
+# metadata, so no TEMPLATE block is required here.
+# Source: https://huggingface.co/docs/hub/ollama
+
+FROM __GGUF_PATH__
+
+# Conservative defaults. Phase 3 (LLM) tunes these against the Hebrew eval set.
+PARAMETER temperature 0.3
+PARAMETER num_ctx 8192
+PARAMETER num_predict 256
+
+# Keep weights pinned in memory so cold-start is absorbed once at `make up`.
+PARAMETER keep_alive -1
