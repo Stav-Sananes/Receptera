@@ -1,0 +1,81 @@
+# Receptra — Milestone 1 Docker Compose stack.
+#
+# Services:
+#   - chromadb   (containerized, multi-arch arm64 image)
+#   - backend    (FastAPI, built from backend/Dockerfile)
+#   - frontend   (Vite dev server, built from frontend/Dockerfile)
+#
+# Ollama is INTENTIONALLY NOT in this compose file. On macOS, Docker cannot
+# pass through Metal/MPS to containers, so containerized Ollama falls back
+# to CPU and blows the <2s latency budget. Ollama runs natively on the host
+# (`brew install ollama && ollama serve`); the backend connects to
+# `host.docker.internal:11434`. See docs/docker.md and .planning/phases/01-foundation/01-RESEARCH.md §1.1.
+#
+# Env vars come from .env (copy from .env.example). The ${VAR:-default}
+# syntax provides fallbacks so `docker compose config` works even without .env.
+
+services:
+  chromadb:
+    image: chromadb/chroma:1.5.8
+    container_name: receptra-chromadb
+    restart: unless-stopped
+    ports:
+      - "${CHROMA_PORT:-8000}:8000"
+    volumes:
+      - ./data/chroma:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v2/heartbeat"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: receptra-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      RECEPTRA_MODEL_DIR: /models
+      RECEPTRA_OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      RECEPTRA_CHROMA_HOST: ${CHROMA_HOST:-http://chromadb:8000}
+      RECEPTRA_LOG_LEVEL: ${RECEPTRA_LOG_LEVEL:-INFO}
+    volumes:
+      # Model weights mounted read-only from host. MODEL_DIR defaults to ~/.receptra/models.
+      - ${MODEL_DIR:-~/.receptra/models}:/models:ro
+    extra_hosts:
+      # Linux contributors need this explicitly; no-op on macOS Docker Desktop.
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: receptra-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      # Consumed by vite.config.ts dev proxy (forwards /api + /ws to backend).
+      VITE_BACKEND_URL: http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5173"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
