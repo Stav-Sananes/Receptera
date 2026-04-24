@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Phase 1 baseline RTL reset. Phase 6 layers on hebrew-tailwind-preset. */
+html,
+body {
+  margin: 0;
+  padding: 0;
+}

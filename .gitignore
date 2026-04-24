@@ -27,6 +27,7 @@ node_modules/
 !.yarn/versions
 frontend/dist/
 frontend/.vite/
+*.tsbuildinfo
 
 # Env files — NEVER commit real secrets
 .env
