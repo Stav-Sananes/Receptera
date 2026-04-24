@@ -1,0 +1,30 @@
+# Backend-specific .dockerignore.
+# Repo-root .dockerignore is applied when building from repo root; this file
+# applies when `docker compose build backend` uses backend/ as the context.
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Dev artifacts
+tests/
+README.md
+
+# Env files — NEVER bake into image
+.env
+.env.local
+
+# Model weights — mounted via volume, never baked in
+**/*.bin
+**/*.safetensors
+**/*.ct2
+**/*.gguf
+**/*.pt
+**/*.pth
