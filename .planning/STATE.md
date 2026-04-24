@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-24T10:40:00.000Z"
+last_updated: "2026-04-24T07:44:34.118Z"
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 6
-  completed_plans: 3
-  percent: 50
+  completed_plans: 4
+  percent: 67
 ---
 
 # Receptra — STATE.md
@@ -29,15 +29,15 @@ progress:
 ## Current Position
 
 Phase: 01-foundation — EXECUTING
-Plan: 01-03 complete; next is 01-04 (Docker Compose) or 01-05 (Makefile/models)
+Plan: 01-04 complete; next is 01-05 (Makefile + model download) or 01-06 (CI, depends on 01-04 + 01-05)
 
 - **Phase:** 01-foundation
-- **Plan:** 01-03 complete (Frontend scaffold: Vite 6 + React 19 + TS 5.6 + Tailwind v4 + RTL index.html + /api + /ws dev proxy to backend:8080)
-- **Status:** Executing Phase 01-foundation (Wave 1 complete; Plans 01-02 and 01-03 of Wave 2 complete; Plan 01-04 docker-compose ready to run; Plan 01-05 Makefile and 01-06 CI follow)
-- **Progress:** 0/7 phases complete (3/6 plans in Phase 1)
+- **Plan:** 01-04 complete (Docker Compose stack: chromadb + backend + frontend with healthcheck-gated chain; backend + frontend Dockerfiles arm64 multi-stage non-root; Ollama intentionally host-native per OPEN-1; docs/docker.md ops runbook)
+- **Status:** Executing Phase 01-foundation (Wave 1 complete; Plans 01-02, 01-03, 01-04 of Wave 2 complete; Plan 01-05 Makefile and 01-06 CI follow)
+- **Progress:** [███████░░░] 67%
 
 ```
-[███░░░░] 50% — Phase 1 of 7 (3/6 plans)
+[████░░░] 67% — Phase 1 of 7 (4/6 plans)
 ```
 
 ## Performance Metrics
@@ -47,10 +47,11 @@ Plan: 01-03 complete; next is 01-04 (Docker Compose) or 01-05 (Makefile/models)
 | 01-foundation | 01-01 | 3min | 3 | 10 | 2026-04-23 |
 | 01-foundation | 01-02 | ~9min | 3 | 11 | 2026-04-23 |
 | 01-foundation | 01-03 | ~20min | 2 | 16 | 2026-04-24 |
+| 01-foundation | 01-04 | ~15min | 3 | 6 | 2026-04-24 |
 
 - Phases completed: 0/7
-- Plans completed: 3
-- v1 requirements delivered: 3/42 (FND-01, FND-04, FND-05 all complete)
+- Plans completed: 4
+- v1 requirements delivered: 4/42 (FND-01, FND-02, FND-04, FND-05 all complete)
 
 ## Accumulated Context
 
@@ -74,6 +75,11 @@ Plan: 01-03 complete; next is 01-04 (Docker Compose) or 01-05 (Makefile/models)
 - Frontend dev proxy: Vite forwards `/api/*` (HTTP) and `/ws/*` (WebSocket, `ws: true`) to `localhost:8080`; `host: '0.0.0.0'` + `strictPort: true` for Docker exposure — Plan 01-03
 - Frontend lint+format gates: ESLint 9 flat config + Prettier 3 (singleQuote for JS/TS, double-quote CSS override); consumed by Plan 01-06 CI — Plan 01-03
 - Frontend scripts contract pinned: dev / build / preview / lint / typecheck / format / format:check — Plan 01-06 CI calls these names (Plan 01-03)
+- Ollama runs HOST-native, NOT in docker-compose — OPEN-1 locked. Backend reaches it via `host.docker.internal:11434` with `extra_hosts: host-gateway` for Linux parity (Plan 01-04)
+- Docker Compose stack = chromadb + backend + frontend with healthcheck-gated chain (`depends_on.condition: service_healthy`); `docker compose config -q` is the CI static gate (Plan 01-04)
+- Container images: non-root `receptra` user (uid 1001) in both backend (python:3.12-slim multi-stage + uv) and frontend (node:22-slim, Vite dev server in Phase 1; nginx static serve deferred to Phase 7) — Plan 01-04
+- Model weights mounted read-only (`${MODEL_DIR:-~/.receptra/models}:/models:ro`) into backend container — never baked into images (Plan 01-04)
+- `chromadb/chroma:1.5.8` image pinned; healthcheck on `/api/v2/heartbeat`, volume at `/data` (Plan 01-04)
 
 ### Open Todos
 
@@ -93,11 +99,12 @@ Plan: 01-03 complete; next is 01-04 (Docker Compose) or 01-05 (Makefile/models)
 ## Session Continuity
 
 - **Last agent:** executor
-- **Last action:** Completed Plan 01-03 (Frontend Scaffold). 16 files committed across 2 atomic commits (64bcf99 Task 1, 77b0d8f Task 2). FND-01 and FND-04 now fully complete (backend + frontend).
-- **Next action:** `/gsd-execute-phase 1` continues with Plan 01-04 (Docker Compose) or Plan 01-05 (Makefile + model download). Plan 01-06 (CI) is the last plan and depends on 01-04 + 01-05.
+- **Last action:** Completed Plan 01-04 (Docker Compose + Dockerfiles). 6 files committed across 3 atomic commits (3ab2138 backend Dockerfile, 3e5af29 frontend Dockerfile, 11c06bc docker-compose.yml + docs/docker.md). FND-02 now complete. `docker compose config -q` passes; Ollama correctly absent from compose (regression guard holds). Runtime buildx validation deferred to Mac-local manual smoke (docker daemon not running in execution env).
+- **Next action:** `/gsd-execute-phase 1` continues with Plan 01-05 (Makefile + model download). Plan 01-06 (CI) is the last plan and depends on 01-04 + 01-05.
 - **Last updated:** 2026-04-24
 
 **Planned Phase:** 1 (Foundation) — 6 plans — 2026-04-23T19:12:18.810Z
 **Plan 01-01 complete:** 2026-04-23T22:05:13Z — commits 1ba63fc, 3351d81, 7d45601
 **Plan 01-02 complete:** 2026-04-23 — commits 530b3bc, 8578d8e, 3bc6df2
 **Plan 01-03 complete:** 2026-04-24 — commits 64bcf99, 77b0d8f
+**Plan 01-04 complete:** 2026-04-24 — commits 3ab2138, 3e5af29, 11c06bc

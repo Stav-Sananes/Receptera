@@ -7,7 +7,8 @@
 ### Foundation
 
 - [x] **FND-01**: Project repository scaffolded with Python backend, React+Vite frontend, and docs directory (backend complete 01-02; frontend complete 01-03)
-- [ ] **FND-02**: Docker Compose stack (arm64-compatible) starts the full system with a single command
+- [x] **FND-02
+**: Docker Compose stack (arm64-compatible) starts the full system with a single command
 - [ ] **FND-03**: Model download step (separate from `docker compose up`) fetches ivrit.ai Whisper, DictaLM, and BGE-M3 to a mounted volume with progress output
 - [x] **FND-04**: Backend and frontend scaffolds produce a healthy `/healthz` endpoint and a reachable empty sidebar page (backend `/healthz` complete 01-02; frontend sidebar complete 01-03)
 - [x] **FND-05**: Apache 2.0 LICENSE, README.md (English + Hebrew), and CONTRIBUTING.md exist at repo root
@@ -100,7 +101,7 @@
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
 | FND-01 | Phase 1: Foundation | Complete (backend 01-02; frontend 01-03) |
-| FND-02 | Phase 1: Foundation | Pending |
+| FND-02 | Phase 1: Foundation | Complete (01-04) |
 | FND-03 | Phase 1: Foundation | Pending |
 | FND-04 | Phase 1: Foundation | Complete (backend /healthz 01-02; frontend sidebar 01-03) |
 | FND-05 | Phase 1: Foundation | Complete (01-01) |

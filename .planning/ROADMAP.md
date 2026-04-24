@@ -127,7 +127,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 3/6 | In progress | - |
+| 1. Foundation | 4/6 | In progress | - |
 | 2. Hebrew Streaming STT | 0/0 | Not started | - |
 | 3. Hebrew Suggestion LLM | 0/0 | Not started | - |
 | 4. Hebrew RAG Knowledge Base | 0/0 | Not started | - |
