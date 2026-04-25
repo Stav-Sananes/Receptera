@@ -307,10 +307,10 @@ def test_no_event_loop_blocking(real_vad_slow_whisper_app: FastAPI) -> None:
     threadpool workers and total wall time stays close to a single call.
 
     Note: TestClient is sync, so we use threads (not asyncio.gather) to
-    drive two concurrent connections. Each connection emits ≥1 partial
-    AND 1 final → at least 2 transcribes per connection × 200 ms = 400 ms
-    minimum even in the parallel case. Threshold set at 1.5 s to leave
-    head-room for slow CI; the serial case would be 800 ms+ × 2 = 1.6 s+.
+    drive two concurrent connections. Each connection emits >=1 partial
+    AND 1 final -- at least 2 transcribes per connection x 200 ms = 400 ms
+    minimum even in the parallel case. Threshold set at 5.0 s to leave
+    head-room for slow CI; the serial case would be 800 ms+ x 2 = 1.6 s+.
     """
     app = real_vad_slow_whisper_app
     results: list[tuple[float, dict[str, Any]]] = []

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 
 from receptra.lifespan import lifespan
+from receptra.stt.pipeline import websocket_stt_endpoint
 
 app = FastAPI(
     title="Receptra",
@@ -18,3 +19,16 @@ app = FastAPI(
 async def healthz() -> dict[str, str]:
     """Liveness probe consumed by Docker healthcheck and CI smoke tests."""
     return {"status": "ok"}
+
+
+@app.websocket("/ws/stt")
+async def ws_stt(websocket: WebSocket) -> None:
+    """Hebrew streaming STT endpoint (Plan 02-04 — STT-03 + STT-04).
+
+    Wire contract: client sends 1024-byte int16 LE PCM frames; server
+    sends JSON text frames per ``receptra.stt.events`` schema.
+    Implementation lives in ``receptra.stt.pipeline.websocket_stt_endpoint``
+    so Plan 02-06 can wrap the inner ``run_utterance_loop`` with metrics
+    + audit-log instrumentation without touching this route definition.
+    """
+    await websocket_stt_endpoint(websocket)
