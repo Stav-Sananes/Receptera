@@ -21,7 +21,6 @@ from receptra.llm.schema import (
     TokenEvent,
 )
 
-
 # Suggestion ----------------------------------------------------------------
 
 
@@ -157,11 +156,13 @@ def test_complete_event_via_discriminated_union() -> None:
 
 
 def test_error_event_code_literal_allowlist() -> None:
+    # Each Literal value constructs cleanly via model_validate (runtime check;
+    # static narrowing across a tuple-literal iteration is not what mypy proves).
     for code in ("ollama_unreachable", "parse_error", "timeout", "no_context"):
-        ev = LlmErrorEvent(code=code, detail="x")  # type: ignore[arg-type]
+        ev = LlmErrorEvent.model_validate({"code": code, "detail": "x"})
         assert ev.code == code
     with pytest.raises(ValidationError):
-        LlmErrorEvent(code="random", detail="x")  # type: ignore[arg-type]
+        LlmErrorEvent.model_validate({"code": "random", "detail": "x"})
 
 
 def test_error_event_via_discriminated_union() -> None:
@@ -215,7 +216,7 @@ def test_chunkref_is_frozen() -> None:
 
 
 def test_package_reexports_public_surface() -> None:
-    from receptra.llm import (  # noqa: F401  (import side-effect only)
+    from receptra.llm import (
         ChunkRef as _ChunkRef,
     )
     from receptra.llm import (
@@ -246,4 +247,4 @@ def test_package_reexports_public_surface() -> None:
 
 
 # Static type-check anchor: SuggestionEvent is a usable annotation target.
-_ANNOTATION_PROBE: SuggestionEvent  # type: ignore[valid-type]
+_ANNOTATION_PROBE: SuggestionEvent
