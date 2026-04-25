@@ -19,6 +19,7 @@ Coverage map:
 from __future__ import annotations
 
 import json
+from typing import Any, cast
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
@@ -30,6 +31,11 @@ from receptra.stt.events import (
     SttEvent,
     SttReady,
 )
+
+# Module-level adapter — TypeAdapter is expensive to construct repeatedly.
+_ADAPTER: TypeAdapter[
+    SttReady | PartialTranscript | FinalTranscript | SttError
+] = TypeAdapter(SttEvent)
 
 # ---------------------------------------------------------------------------
 # Test 1 — SttReady roundtrip
@@ -47,7 +53,7 @@ def test_ready_roundtrip() -> None:
     assert payload["sample_rate"] == 16000
     assert payload["frame_bytes"] == 1024
 
-    parsed = TypeAdapter(SttEvent).validate_python(payload)
+    parsed = _ADAPTER.validate_python(payload)
     assert isinstance(parsed, SttReady)
     assert parsed == ready
 
@@ -69,7 +75,7 @@ def test_partial_roundtrip() -> None:
     assert payload["type"] == "partial"
     assert payload["text"] == hebrew
 
-    parsed = TypeAdapter(SttEvent).validate_python(payload)
+    parsed = _ADAPTER.validate_python(payload)
     assert isinstance(parsed, PartialTranscript)
     assert parsed.text == hebrew  # byte-exact preservation
     assert parsed.t_speech_start_ms == 1234
@@ -93,7 +99,7 @@ def test_final_roundtrip() -> None:
     payload = json.loads(final.model_dump_json())
 
     assert payload["type"] == "final"
-    parsed = TypeAdapter(SttEvent).validate_python(payload)
+    parsed = _ADAPTER.validate_python(payload)
     assert isinstance(parsed, FinalTranscript)
     assert parsed.stt_latency_ms == 350
     assert parsed.duration_ms == 1200
@@ -110,7 +116,7 @@ def test_final_roundtrip() -> None:
 def test_error_roundtrip() -> None:
     """``SttError`` accepts the 3 research-locked codes and rejects others."""
     err = SttError(code="protocol_error", message="bad frame size")
-    parsed = TypeAdapter(SttEvent).validate_python(json.loads(err.model_dump_json()))
+    parsed = _ADAPTER.validate_python(json.loads(err.model_dump_json()))
     assert isinstance(parsed, SttError)
     assert parsed.code == "protocol_error"
     assert parsed.message == "bad frame size"
@@ -119,9 +125,11 @@ def test_error_roundtrip() -> None:
     SttError(code="model_error", message="x")
     SttError(code="vad_error", message="y")
 
-    # Bogus code rejected at construction time
+    # Bogus code rejected at construction time. Cast to Any so mypy does not
+    # short-circuit the runtime ValidationError path with its own complaint.
+    bogus: Any = "bogus"
     with pytest.raises(ValidationError):
-        SttError(code="bogus", message="z")  # type: ignore[arg-type]
+        SttError(code=bogus, message="z")
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +147,7 @@ def test_discriminator_dispatches() -> None:
         "stt_latency_ms": 50,
         "duration_ms": 100,
     }
-    parsed = TypeAdapter(SttEvent).validate_python(raw)
+    parsed = _ADAPTER.validate_python(raw)
     assert isinstance(parsed, FinalTranscript)
     assert not isinstance(parsed, PartialTranscript)
 
@@ -152,5 +160,9 @@ def test_discriminator_dispatches() -> None:
 def test_frozen_type_discriminator() -> None:
     """``frozen=True`` MUST forbid mutating ``.type`` after construction."""
     ready = SttReady(model="m")
+    # Cast through Any so mypy doesn't short-circuit the runtime error path
+    # (Literal["ready"] forbids assignment of any other string at type-check
+    # time; the runtime check we want to assert is pydantic's frozen guard).
+    ready_any = cast(Any, ready)
     with pytest.raises(ValidationError):
-        ready.type = "partial"  # type: ignore[misc]
+        ready_any.type = "partial"
