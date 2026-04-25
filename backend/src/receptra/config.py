@@ -39,5 +39,11 @@ class Settings(BaseSettings):
     vad_min_silence_ms: int = 300
     vad_speech_pad_ms: int = 200
 
+    # When True, the loguru `event="stt.utterance"` log line INCLUDES the raw
+    # transcript body. Default False — Hebrew transcripts are PII (RESEARCH
+    # §Security Domain). Enable only for local debugging on a developer
+    # machine. See docs/stt.md §Audit log + PII warning.
+    stt_log_text_redaction_disabled: bool = False
+
 
 settings = Settings()
