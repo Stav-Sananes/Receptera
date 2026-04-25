@@ -70,7 +70,7 @@
 **Skills**: none required at this phase (Hebrew NLP is prompt-level; tuning eval lives in Phase 7).
 **Pitfalls addressed**: #2 (DictaLM deployment), #3 (memory pressure — Q4 quantization verified), #5 (grounding), #9 (chat template).
 **Plans**: 6 plans
-- [ ] 03-01-PLAN.md — Wave-0 dep lock (`ollama>=0.6.1`) + Settings extension + Ollama smoke + DictaLM ChatML grep gate (LLM-01)
+- [x] 03-01-PLAN.md — Wave-0 dep lock (`ollama>=0.6.1`) + Settings extension + Ollama smoke + DictaLM ChatML grep gate (LLM-01)
 - [ ] 03-02-PLAN.md — receptra.llm package skeleton: Suggestion + SuggestionResponse + SuggestionEvent discriminated union + Hebrew system prompt + 2 few-shot turns + DoS-bounded build_user_message (LLM-03, LLM-04)
 - [ ] 03-03-PLAN.md — Ollama AsyncClient factory + select_model probe (primary/fallback/typed-error) + bounded retry_with_strict_json helper (LLM-01)
 - [ ] 03-04-PLAN.md — generate_suggestions AsyncGenerator: short-circuit + stream + parse + bounded retry + typed errors + LlmCallTrace + opt-in live grounding test (LLM-02, LLM-03, LLM-04)
@@ -141,7 +141,7 @@
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete | 2026-04-24 |
 | 2. Hebrew Streaming STT | 6/6 | Complete | 2026-04-25 |
-| 3. Hebrew Suggestion LLM | 0/6 | Planned | - |
+| 3. Hebrew Suggestion LLM | 1/6 | In Progress | - |
 | 4. Hebrew RAG Knowledge Base | 0/0 | Not started | - |
 | 5. Hot-Path Integration | 0/0 | Not started | - |
 | 6. Browser Sidebar Frontend | 0/0 | Not started | - |
