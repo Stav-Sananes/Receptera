@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-last_updated: "2026-04-25T19:08:58.238Z"
+last_updated: "2026-04-25T19:25:09.054Z"
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 12
-  completed_plans: 9
-  percent: 75
+  completed_plans: 10
+  percent: 83
 ---
 
 # Receptra — STATE.md
@@ -28,15 +28,15 @@ progress:
 
 ## Current Position
 
-Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, and 02-03 complete.
+Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, 02-03, and 02-04 complete.
 
-- **Phase:** 02-hebrew-streaming-stt (3/6 plans complete)
-- **Plan:** 02-03 complete (per-connection StreamingVad wrapper around silero_vad.VADIterator; accepts an already-loaded model singleton via constructor + threshold/min_silence_ms/speech_pad_ms args; feed(1024-byte int16 LE frame) returns VadEvent {kind: 'start'|'end', t_ms: int} or None; reset_states() called in __init__ AND public reset() — Pitfall #2 belt-and-braces guard against cross-connection state leak, regression-tested by test_two_instances_have_independent_state; InvalidFrameError raised before numpy allocation when frame size != 1024 bytes — T-02-03-01 mitigation; little-endian explicitly pinned via dtype='<i2'; FRAME_BYTES=1024, FRAME_SAMPLES=512, SAMPLE_RATE_HZ=16000 module-level constants exported for Plan 02-04 wire-protocol reuse; 7 vad tests + 19/19 backend suite green; ruff + mypy strict clean; STT-02 satisfied)
-- **Status:** Plans 02-01 + 02-02 + 02-03 COMPLETE. Next plan 02-04 (/ws/stt WebSocket endpoint that consumes app.state.whisper + app.state.vad_model + transcribe_hebrew() + StreamingVad). Phase 2 requires Plan 02-06 to re-run the latency spike on reference M2 hardware before phase exit.
-- **Progress:** [████████░░] 75%
+- **Phase:** 02-hebrew-streaming-stt (4/6 plans complete)
+- **Plan:** 02-04 complete (/ws/stt WebSocket endpoint with VAD-gated transcribe loop; pydantic discriminated union event schema (SttReady/PartialTranscript/FinalTranscript/SttError) with frozen=True models in receptra.stt.events; receptra.stt.pipeline exports websocket_stt_endpoint(ws) FastAPI handler + run_utterance_loop(ws, vad, transcribe) testable inner loop split out for Plan 02-06 metrics wrapper; @app.websocket('/ws/stt') mounted in main.py delegating to pipeline; faster-whisper transcribe wrapped in await asyncio.to_thread(...) inside per-connection closure (Pitfall #5 mitigated); regression test_no_event_loop_blocking drives 2 concurrent WS w/ 200ms sleep stub, asserts parallel wall time; per-connection StreamingVad constructed inside handler with vad.reset() in finally (Pitfall #2 defense); InvalidFrameError → SttError(code='protocol_error') + ws.close(1007) (T-02-04-01); 11 new tests across 3 files (6 schema + 2 handshake + 3 roundtrip), full backend suite 30/30 green; ruff + mypy strict clean (21 src files); STT-03 + STT-04 satisfied)
+- **Status:** Plans 02-01 + 02-02 + 02-03 + 02-04 COMPLETE. Next plan 02-05 (WER batch eval against seeded 30-sample Hebrew test set — STT-05). Phase 2 requires Plan 02-06 to re-run the latency spike on reference M2 hardware before phase exit (replaces 700 ms provisional partial_interval).
+- **Progress:** [████████░░] 83%
 
 ```
-[████████░░] 75% — 9/12 plans (Phase 1: 6/6 complete; Phase 2: 3/6 complete)
+[████████░░] 83% — 10/12 plans (Phase 1: 6/6 complete; Phase 2: 4/6 complete)
 ```
 
 ## Performance Metrics
@@ -52,10 +52,11 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, and 02-03 comp
 | 02-hebrew-streaming-stt | 02-01 | ~8min | 2 | 5 | 2026-04-24 |
 | 02-hebrew-streaming-stt | 02-02 | ~12min | 2 | 13 | 2026-04-25 |
 | 02-hebrew-streaming-stt | 02-03 | ~4min | 1 | 3 | 2026-04-25 |
+| 02-hebrew-streaming-stt | 02-04 | ~10min | 2 | 6 | 2026-04-25 |
 
 - Phases completed: 1/7 (Phase 1 Foundation complete; Phase 2 STT in progress)
-- Plans completed: 9 (Phase 1: 6/6; Phase 2: 3/6)
-- v1 requirements delivered: 8/42 (Phase 1 FND-* complete + STT-01 from Plan 02-02 + STT-02 from Plan 02-03; remaining Phase 2 requirements land at plan boundaries 02-04..02-06)
+- Plans completed: 10 (Phase 1: 6/6; Phase 2: 4/6)
+- v1 requirements delivered: 10/42 (Phase 1 FND-* complete + STT-01 from Plan 02-02 + STT-02 from Plan 02-03 + STT-03 + STT-04 from Plan 02-04; remaining Phase 2 requirements (STT-05, STT-06) land at plan boundaries 02-05..02-06)
 
 ## Accumulated Context
 
@@ -110,6 +111,12 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, and 02-03 comp
 - Plan 02-03: `StreamingVad` accepts an already-loaded model + segmentation params via constructor — does NOT import `receptra.config` and does NOT call `load_silero_vad`. Decouples module from Plan 02-02 lifespan, makes unit tests self-contained, matches the FastAPI canonical app.state dependency-injection pattern. Plan 02-04 wires settings at the WebSocket entry point (Plan 02-03)
 - Plan 02-03: `VadEvent` TypedDict normalizes `silero_vad.VADIterator`'s `{"start": seconds_float}` / `{"end": seconds_float}` raw output into `{"kind": "start"|"end", "t_ms": int}` for downstream consumers. Plan 02-06 uses `t_ms` timestamps as the headline latency metric (speech-start to first-partial-transcript) (Plan 02-03)
 - Plan 02-03: Test signal upgraded from pure-tone to FM-modulated harmonic stack with 5 Hz AM envelope and 0.15-amplitude broadband noise — pure 1 kHz sinusoids register as silence to Silero v5 (peak prob ~0.2); the formant-FM synthesizer reliably crosses 0.9. Noise component seeded by phase (deterministic function of frame index, NOT a stateful module RNG) so test ordering is irrelevant (Plan 02-03)
+- Plan 02-04: `receptra.stt.events` publishes the wire schema as a pydantic v2 discriminated union (SttReady, PartialTranscript, FinalTranscript, SttError) on the `type` field; every model `frozen=True`; `SttEvent = Annotated[... | ..., Field(discriminator='type')]` is the TypeAdapter alias Plan 02-05/02-06 + Phase 6 frontend parse against. SttError code is a 3-value Literal allowlist (model_error/vad_error/protocol_error) — adding a 4th requires plan amendment so consumer switches stay total (Plan 02-04)
+- Plan 02-04: `receptra.stt.pipeline.run_utterance_loop(ws, vad, transcribe)` is the wrappable unit Plan 02-06 metrics middleware will instrument; the FastAPI route stays a thin shim in main.py. The transcribe parameter is `Callable[[NDArray[np.float32]], Awaitable[str]]` so the threadpool/instrumentation strategy is hidden behind the closure — `websocket_stt_endpoint` puts the `await asyncio.to_thread(transcribe_hebrew, ...)` wrap inside its inner closure (Pitfall #5 mitigated; regression `test_no_event_loop_blocking` drives 2 concurrent WS w/ 200ms sleep stub) (Plan 02-04)
+- Plan 02-04: Partial cadence is gated on ACCUMULATED AUDIO TIME (`audio_ms_since_partial >= settings.stt_partial_interval_ms`), NOT wall-clock time. RESEARCH §7's wall-clock pseudocode fires correctly under real-time streaming (1 s wall ≈ 1 s audio buffered) but never fires when a client bursts frames faster than real-time (TestClient + any non-real-time producer). Audio-time gating is also semantically more correct: the user-facing contract is "one partial per N ms of speech." Documented inline in run_utterance_loop with multi-line rationale comment (Plan 02-04, Rule 1 deviation from research)
+- Plan 02-04: WebSocket close code 1007 (RFC 6455 Invalid Frame Payload Data) on the protocol_error path — semantically correct over generic 1000. Frontend can switch on the close code to distinguish "bad client" from "normal disconnect" (Plan 02-04)
+- Plan 02-04: Per-connection StreamingVad construction inside `websocket_stt_endpoint` wraps the SHARED `app.state.vad_model` singleton; `vad.reset()` in `finally` even though wrapper is local-scope — defense-in-depth + documents the per-connection isolation contract for future refactors (Pitfall #2). Cleanup ladder: `WebSocketDisconnect` → clean log; `Exception` → `SttError(model_error)` envelope + log w/ stack; always vad.reset() + ws.close() suppressed via contextlib.suppress (Plan 02-04)
+- Plan 02-04: Test fixtures `real_vad_app` / `real_vad_canned_whisper_app` / `real_vad_slow_whisper_app` override the autouse conftest VAD stub with the real Silero TorchScript model (small, ~30MB, already in dev cache). Whisper stays stubbed (`_CannedWhisperStub` returning `iter([_Segment(' שלום')])` or sleep-stub variant). Necessary because StreamingVad → VADIterator calls model.reset_states() which the autouse `object()` sentinel does not satisfy. Stubbed Whisper avoids loading 1.5 GB into the test runner (Plan 02-04)
 
 ### Open Todos
 
@@ -129,8 +136,8 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, and 02-03 comp
 ## Session Continuity
 
 - **Last agent:** executor
-- **Last action:** Completed Plan 02-03 (Phase 2 Hebrew Streaming STT — per-connection Silero VAD streaming wrapper). 3 files created across 2 atomic TDD commits (b1633cf test RED / 801d658 feat GREEN). All 6 plan-verification gates passed: ruff clean, mypy strict clean (16 src files), 19/19 pytest green (5 engine + 4 lifespan + 7 vad + 3 healthz), `dtype="<i2"` little-endian pin present, `reset_states` called in 2 places (constructor + reset()), `FRAME_BYTES = 1024` constant exported. Two Rule-1 deviations in test helpers (both isolated to test_vad_streaming.py): (1) test signal synthesizer upgraded from plan-suggested 1 kHz pure tone to FM-modulated harmonic stack with AM envelope + broadband noise — pure tone gave Silero peak prob ~0.2 (silence-class); speechy synthesizer drives prob >0.9 reliably; (2) made noise generation stateless (seeded by phase, not by drained module RNG) so multi-test runs are deterministic. STT-02 satisfied. StreamingVad + InvalidFrameError + VadEvent + FRAME_BYTES/FRAME_SAMPLES/SAMPLE_RATE_HZ constants published as contracts for Plan 02-04.
-- **Next action:** Proceed to Plan 02-04 (/ws/stt WebSocket endpoint that consumes app.state.whisper + app.state.vad_model via StreamingVad + transcribe_hebrew(); converts InvalidFrameError to protocol_error envelope; emits partial/final transcripts on speech-end events).
+- **Last action:** Completed Plan 02-04 (Phase 2 Hebrew Streaming STT — /ws/stt WebSocket endpoint with VAD-gated transcribe loop). 6 files created + 1 modified across 4 atomic TDD commits (bc968b1 test RED schema / b99aa9b feat GREEN events / 714703e test RED ws / 591f0c3 feat GREEN pipeline+main route). All 6 plan-verification gates PASS: ruff clean, mypy strict clean (21 src files), 30/30 pytest green (5 engine + 6 events_schema + 4 lifespan + 7 vad + 2 ws_handshake + 3 ws_pcm_roundtrip + 3 healthz), @app.websocket("/ws/stt") mounted in main.py, asyncio.to_thread present in pipeline.py, time.time() NOT present (monotonic only). 11 new tests added. Three deviations: (1) Rule 1 — partial cadence rewritten to use accumulated audio time instead of wall-clock time so TestClient bursts deterministically trigger partials AND production semantics improve (one partial per N ms of speech, not per N ms of wall); (2) Rule 3 — handshake + roundtrip test fixtures override the autouse conftest VAD stub with REAL Silero (the autouse `object()` sentinel does not satisfy VADIterator.reset_states()); (3) Rule 1 — mypy strict cleanup in test_events_schema.py (module-level TypeAdapter, Any-cast for ValidationError tests). STT-03 + STT-04 satisfied. SttReady/PartialTranscript/FinalTranscript/SttError discriminated union + run_utterance_loop(ws, vad, transcribe) published as wrappable contract for Plan 02-06.
+- **Next action:** Proceed to Plan 02-05 (WER batch eval against seeded 30-sample Hebrew test set — STT-05). Plan 02-05 may consume the /ws/stt path or call transcribe_hebrew directly; either route lands valid WER measurements. Plan 02-06 follows (latency instrumentation + audit log + reference-hardware spike re-run).
 - **Last updated:** 2026-04-25
 
 **Planned Phase:** 1 (Foundation) — 6 plans — 2026-04-23T19:12:18.810Z
@@ -144,3 +151,4 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, and 02-03 comp
 **Plan 02-01 complete:** 2026-04-24 — commits 3928bdd, 6411ab5
 **Plan 02-02 complete:** 2026-04-25 — commits 9584947, d95f693, c7f79c2, 2dde0a9 (TDD RED+GREEN x 2 tasks; STT-01 satisfied)
 **Plan 02-03 complete:** 2026-04-25 — commits b1633cf, 801d658 (TDD RED+GREEN x 1 task; STT-02 satisfied — per-connection StreamingVad wrapper)
+**Plan 02-04 complete:** 2026-04-25 — commits bc968b1, b99aa9b, 714703e, 591f0c3 (TDD RED+GREEN x 2 tasks; STT-03 + STT-04 satisfied — /ws/stt WebSocket endpoint with VAD-gated transcribe loop, pydantic event schema, asyncio.to_thread non-blocking)
