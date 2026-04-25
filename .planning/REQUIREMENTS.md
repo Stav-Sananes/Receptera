@@ -17,7 +17,7 @@
 ### STT (Hebrew Streaming Speech-to-Text)
 
 - [x] **STT-01**: Backend runs `faster-whisper` with the `ivrit-ai/whisper-large-v3-turbo-ct2` model, loaded once at startup (complete 02-02)
-- [ ] **STT-02**: Silero VAD identifies speech chunks from an incoming PCM audio stream
+- [x] **STT-02**: Silero VAD identifies speech chunks from an incoming PCM audio stream (complete 02-03)
 - [ ] **STT-03**: Backend exposes a WebSocket endpoint that accepts binary PCM frames and emits partial Hebrew transcripts within ~1s of speech onset
 - [ ] **STT-04**: Final-utterance transcript events are emitted when VAD detects end-of-speech
 - [ ] **STT-05**: STT accuracy is verified against a seeded 30-sample Hebrew audio test set with WER measured and logged
@@ -107,7 +107,7 @@
 | FND-05 | Phase 1: Foundation | Complete (01-01) |
 | FND-06 | Phase 1: Foundation | Complete (01-06) |
 | STT-01 | Phase 2: Hebrew Streaming STT | Complete (02-02) |
-| STT-02 | Phase 2: Hebrew Streaming STT | Pending |
+| STT-02 | Phase 2: Hebrew Streaming STT | Complete (02-03) |
 | STT-03 | Phase 2: Hebrew Streaming STT | Pending |
 | STT-04 | Phase 2: Hebrew Streaming STT | Pending |
 | STT-05 | Phase 2: Hebrew Streaming STT | Pending |

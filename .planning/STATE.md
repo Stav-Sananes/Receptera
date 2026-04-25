@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-last_updated: "2026-04-25T18:58:41.083Z"
+last_updated: "2026-04-25T19:08:58.238Z"
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 12
-  completed_plans: 8
-  percent: 67
+  completed_plans: 9
+  percent: 75
 ---
 
 # Receptra — STATE.md
@@ -28,15 +28,15 @@ progress:
 
 ## Current Position
 
-Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01 and 02-02 complete.
+Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, and 02-03 complete.
 
-- **Phase:** 02-hebrew-streaming-stt (2/6 plans complete)
-- **Plan:** 02-02 complete (FastAPI asynccontextmanager lifespan loads WhisperModel + Silero VAD singletons onto app.state; warmup transcribe before yield mitigates Pitfall #7; transcribe_hebrew() in stt/engine.py is the single source of truth for RESEARCH §7 Hebrew kwargs with 5 unit tests pinning every kwarg; loguru with serialize=True replaces stdlib logging.basicConfig as the audit-log contract for INT-05; Settings extended with 8 STT-related fields; 12/12 tests green; ruff + mypy strict clean; STT-01 satisfied)
-- **Status:** Plans 02-01 + 02-02 COMPLETE. Next plan 02-03 (per-connection Silero VAD wrapper around app.state.vad_model). Phase 2 requires Plan 02-06 to re-run the spike on reference M2 hardware before phase exit.
-- **Progress:** [███████░░░] 67%
+- **Phase:** 02-hebrew-streaming-stt (3/6 plans complete)
+- **Plan:** 02-03 complete (per-connection StreamingVad wrapper around silero_vad.VADIterator; accepts an already-loaded model singleton via constructor + threshold/min_silence_ms/speech_pad_ms args; feed(1024-byte int16 LE frame) returns VadEvent {kind: 'start'|'end', t_ms: int} or None; reset_states() called in __init__ AND public reset() — Pitfall #2 belt-and-braces guard against cross-connection state leak, regression-tested by test_two_instances_have_independent_state; InvalidFrameError raised before numpy allocation when frame size != 1024 bytes — T-02-03-01 mitigation; little-endian explicitly pinned via dtype='<i2'; FRAME_BYTES=1024, FRAME_SAMPLES=512, SAMPLE_RATE_HZ=16000 module-level constants exported for Plan 02-04 wire-protocol reuse; 7 vad tests + 19/19 backend suite green; ruff + mypy strict clean; STT-02 satisfied)
+- **Status:** Plans 02-01 + 02-02 + 02-03 COMPLETE. Next plan 02-04 (/ws/stt WebSocket endpoint that consumes app.state.whisper + app.state.vad_model + transcribe_hebrew() + StreamingVad). Phase 2 requires Plan 02-06 to re-run the latency spike on reference M2 hardware before phase exit.
+- **Progress:** [████████░░] 75%
 
 ```
-[███████░░░] 67% — 8/12 plans (Phase 1: 6/6 complete; Phase 2: 2/6 complete)
+[████████░░] 75% — 9/12 plans (Phase 1: 6/6 complete; Phase 2: 3/6 complete)
 ```
 
 ## Performance Metrics
@@ -51,10 +51,11 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01 and 02-02 complete.
 | 01-foundation | 01-06 | ~2min | 2 | 3 | 2026-04-24 |
 | 02-hebrew-streaming-stt | 02-01 | ~8min | 2 | 5 | 2026-04-24 |
 | 02-hebrew-streaming-stt | 02-02 | ~12min | 2 | 13 | 2026-04-25 |
+| 02-hebrew-streaming-stt | 02-03 | ~4min | 1 | 3 | 2026-04-25 |
 
 - Phases completed: 1/7 (Phase 1 Foundation complete; Phase 2 STT in progress)
-- Plans completed: 8 (Phase 1: 6/6; Phase 2: 2/6)
-- v1 requirements delivered: 7/42 (Phase 1 FND-* complete + STT-01 from Plan 02-02; remaining Phase 2 requirements land at plan boundaries 02-03..02-06)
+- Plans completed: 9 (Phase 1: 6/6; Phase 2: 3/6)
+- v1 requirements delivered: 8/42 (Phase 1 FND-* complete + STT-01 from Plan 02-02 + STT-02 from Plan 02-03; remaining Phase 2 requirements land at plan boundaries 02-04..02-06)
 
 ## Accumulated Context
 
@@ -103,6 +104,12 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01 and 02-02 complete.
 - Plan 02-02: Settings extended with 8 STT-related fields (whisper_model_subdir, whisper_compute_type=int8, whisper_cpu_threads=4, audit_db_path, stt_partial_interval_ms=700 honoring 02-01-SPIKE-RESULTS.md provisional lock, vad_threshold=0.5, vad_min_silence_ms=300, vad_speech_pad_ms=200) — all documented in .env.example (Plan 02-02)
 - Plan 02-02: Test-time stub-before-import pattern — `backend/tests/conftest.py` autouse `_stub_heavy_loaders` monkeypatches WhisperModel + load_silero_vad before any app import; STT-specific tests opt into a richer stub fixture (`stubbed_app` in test_lifespan.py) when introspection is needed. Keeps CI offline + fast and works with TestClient lifespan startup (Plan 02-02)
 - Plan 02-02: mypy strict override `ignore_missing_imports=true` for `faster_whisper` + `silero_vad` modules (no py.typed markers upstream); the wrapper boundary uses `Protocol` to keep our public surface narrowly typed (Plan 02-02)
+- Plan 02-03: `receptra.stt.vad.StreamingVad(model, threshold, min_silence_ms, speech_pad_ms)` is the per-connection VAD wrapper. Each WebSocket handler in Plan 02-04 constructs its OWN StreamingVad wrapping the shared `app.state.vad_model` singleton; the underlying `silero_vad.VADIterator` carries per-session state and `reset_states()` is called in BOTH `__init__` AND the public `reset()` method (Pitfall #2 belt-and-braces; regression-tested by `test_two_instances_have_independent_state`) (Plan 02-03)
+- Plan 02-03: Wire-format constants `FRAME_BYTES=1024`, `FRAME_SAMPLES=512`, `SAMPLE_RATE_HZ=16000` exported from `receptra.stt.vad` as module-level symbols. Plan 02-04 imports them so the WebSocket binary-frame size guard and the VAD wrapper share a single source of truth. Little-endian explicitly pinned via `dtype="<i2"` (NOT `np.int16`, which would honor native byte order) — Pitfall #4 partial defense; full byte-order validation is at the WebSocket protocol layer in Plan 02-04 (Plan 02-03)
+- Plan 02-03: `InvalidFrameError(ValueError)` raised by `StreamingVad.feed()` BEFORE any numpy allocation when frame length != 1024 bytes. Plan 02-04 converts this to `{"type":"error","code":"protocol_error"}` envelope and closes the WebSocket. Threat T-02-03-01 (DoS via malformed frame size) mitigated; ASVS V5 input validation (Plan 02-03)
+- Plan 02-03: `StreamingVad` accepts an already-loaded model + segmentation params via constructor — does NOT import `receptra.config` and does NOT call `load_silero_vad`. Decouples module from Plan 02-02 lifespan, makes unit tests self-contained, matches the FastAPI canonical app.state dependency-injection pattern. Plan 02-04 wires settings at the WebSocket entry point (Plan 02-03)
+- Plan 02-03: `VadEvent` TypedDict normalizes `silero_vad.VADIterator`'s `{"start": seconds_float}` / `{"end": seconds_float}` raw output into `{"kind": "start"|"end", "t_ms": int}` for downstream consumers. Plan 02-06 uses `t_ms` timestamps as the headline latency metric (speech-start to first-partial-transcript) (Plan 02-03)
+- Plan 02-03: Test signal upgraded from pure-tone to FM-modulated harmonic stack with 5 Hz AM envelope and 0.15-amplitude broadband noise — pure 1 kHz sinusoids register as silence to Silero v5 (peak prob ~0.2); the formant-FM synthesizer reliably crosses 0.9. Noise component seeded by phase (deterministic function of frame index, NOT a stateful module RNG) so test ordering is irrelevant (Plan 02-03)
 
 ### Open Todos
 
@@ -122,8 +129,8 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01 and 02-02 complete.
 ## Session Continuity
 
 - **Last agent:** executor
-- **Last action:** Completed Plan 02-02 (Phase 2 Hebrew Streaming STT — FastAPI lifespan refactor + WhisperModel/Silero VAD singletons + transcribe_hebrew wrapper). 13 files touched across 4 atomic TDD commits (9584947 test RED Task 1 / d95f693 feat GREEN Task 1 / c7f79c2 test RED Task 2 / 2dde0a9 feat GREEN Task 2). All 6 plan-verification gates passed: ruff clean, mypy strict clean (14 src files), 12/12 pytest green (5 engine + 4 lifespan + 3 healthz regression), zero @app.on_event in main.py, lifespan=lifespan present, transcribe_hebrew is the single language="he" call site (1 call + 1 docstring reference). One Rule-1 deviation: fixed `_WhisperStub.transcribe` signature in tests/conftest.py (positional `_audio` rejected the engine wrapper's keyword `audio=...` invocation; switched to `*_args, **_kwargs`). STT-01 satisfied. app.state.whisper, app.state.vad_model, app.state.warmup_complete published as contracts for Plans 02-03/02-04.
-- **Next action:** Proceed to Plan 02-03 (per-connection Silero VAD wrapper around app.state.vad_model — 512-sample window + int16 LE → float32 + per-connection state isolation per Pitfall #2; satisfies STT-02).
+- **Last action:** Completed Plan 02-03 (Phase 2 Hebrew Streaming STT — per-connection Silero VAD streaming wrapper). 3 files created across 2 atomic TDD commits (b1633cf test RED / 801d658 feat GREEN). All 6 plan-verification gates passed: ruff clean, mypy strict clean (16 src files), 19/19 pytest green (5 engine + 4 lifespan + 7 vad + 3 healthz), `dtype="<i2"` little-endian pin present, `reset_states` called in 2 places (constructor + reset()), `FRAME_BYTES = 1024` constant exported. Two Rule-1 deviations in test helpers (both isolated to test_vad_streaming.py): (1) test signal synthesizer upgraded from plan-suggested 1 kHz pure tone to FM-modulated harmonic stack with AM envelope + broadband noise — pure tone gave Silero peak prob ~0.2 (silence-class); speechy synthesizer drives prob >0.9 reliably; (2) made noise generation stateless (seeded by phase, not by drained module RNG) so multi-test runs are deterministic. STT-02 satisfied. StreamingVad + InvalidFrameError + VadEvent + FRAME_BYTES/FRAME_SAMPLES/SAMPLE_RATE_HZ constants published as contracts for Plan 02-04.
+- **Next action:** Proceed to Plan 02-04 (/ws/stt WebSocket endpoint that consumes app.state.whisper + app.state.vad_model via StreamingVad + transcribe_hebrew(); converts InvalidFrameError to protocol_error envelope; emits partial/final transcripts on speech-end events).
 - **Last updated:** 2026-04-25
 
 **Planned Phase:** 1 (Foundation) — 6 plans — 2026-04-23T19:12:18.810Z
@@ -136,3 +143,4 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01 and 02-02 complete.
 **Phase 1 Foundation COMPLETE:** 2026-04-24 — 6/6 plans, 6/6 FND-* requirements
 **Plan 02-01 complete:** 2026-04-24 — commits 3928bdd, 6411ab5
 **Plan 02-02 complete:** 2026-04-25 — commits 9584947, d95f693, c7f79c2, 2dde0a9 (TDD RED+GREEN x 2 tasks; STT-01 satisfied)
+**Plan 02-03 complete:** 2026-04-25 — commits b1633cf, 801d658 (TDD RED+GREEN x 1 task; STT-02 satisfied — per-connection StreamingVad wrapper)
