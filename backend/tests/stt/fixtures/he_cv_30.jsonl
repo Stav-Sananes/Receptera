@@ -1,0 +1,1 @@
+{"cv_revision": "main", "duration_ms": 0, "id": "UNFETCHED", "ref": "UNFETCHED — contributor must run scripts/fetch_stt_fixtures.py with HF Hub access + Common Voice 25.0 dataset acceptance (see docs/stt-eval.md).", "source": "mozilla-foundation/common_voice_25_0", "status": "airgapped", "wav": null}
