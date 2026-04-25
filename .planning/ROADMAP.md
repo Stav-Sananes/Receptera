@@ -51,7 +51,7 @@
 **Pitfalls addressed**: #1 (Hebrew WER on real audio), #4 (latency instrumentation at stage boundary).
 **Plans**: 6 plans
 - [ ] 02-01-PLAN.md — Wave-0 spike: pin deps (faster-whisper + silero-vad + jiwer + loguru), verify license allowlist, measure M2 int8 latency, lock partial cadence
-- [ ] 02-02-PLAN.md — FastAPI lifespan refactor + Whisper singleton on app.state + stt/engine.py Hebrew-locked transcribe wrapper (STT-01)
+- [x] 02-02-PLAN.md — FastAPI lifespan refactor + Whisper singleton on app.state + stt/engine.py Hebrew-locked transcribe wrapper (STT-01)
 - [ ] 02-03-PLAN.md — Per-connection Silero VAD wrapper: 512-sample window + int16 LE → float32 + state isolation per connection (STT-02)
 - [ ] 02-04-PLAN.md — /ws/stt WebSocket endpoint: pydantic event schema + VAD-gated re-transcribe loop + asyncio.to_thread transcribe (STT-03, STT-04)
 - [ ] 02-05-PLAN.md — Hebrew WER eval harness: jiwer + NFC/niqqud normalisation + 30 Common Voice he-25.0 fixtures + eval CLI + regression test (STT-05)
