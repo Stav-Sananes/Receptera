@@ -23,7 +23,6 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-
 BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 MAIN_PY_PATH = BACKEND_ROOT / "src" / "receptra" / "main.py"
 
@@ -104,7 +103,7 @@ def test_whisper_loaded_on_state(stubbed_app: tuple[Any, dict[str, Any]]) -> Non
 
 
 def test_warmup_transcribe_called(stubbed_app: tuple[Any, dict[str, Any]]) -> None:
-    """Warmup transcribe MUST run exactly once during startup with ``language='he'`` (Pitfall #7)."""
+    """Warmup transcribe runs exactly once during startup w/ language='he' (Pitfall #7)."""
     app, calls = stubbed_app
 
     with TestClient(app) as client:

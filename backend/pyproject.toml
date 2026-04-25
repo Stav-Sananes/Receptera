@@ -60,6 +60,12 @@ plugins = ["pydantic.mypy"]
 module = "tests.*"
 disallow_untyped_decorators = false
 
+# Upstream untyped libraries (no py.typed marker). faster_whisper and
+# silero_vad ship without type stubs; their public surface we use is narrow.
+[[tool.mypy.overrides]]
+module = ["faster_whisper", "faster_whisper.*", "silero_vad", "silero_vad.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
