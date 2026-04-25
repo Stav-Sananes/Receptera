@@ -22,7 +22,8 @@
 - [x] **STT-04**: Final-utterance transcript events are emitted when VAD detects end-of-speech (complete 02-04)
 - [x] **STT-05
 **: STT accuracy is verified against a seeded 30-sample Hebrew audio test set with WER measured and logged
-- [ ] **STT-06**: STT latency (time from speech end to final transcript) is instrumented and logged per request
+- [x] **STT-06
+**: STT latency (time from speech end to final transcript) is instrumented and logged per request
 
 ### LLM (Hebrew Suggestion Engine)
 
@@ -112,7 +113,7 @@
 | STT-03 | Phase 2: Hebrew Streaming STT | Complete (02-04) |
 | STT-04 | Phase 2: Hebrew Streaming STT | Complete (02-04) |
 | STT-05 | Phase 2: Hebrew Streaming STT | Complete (02-05) |
-| STT-06 | Phase 2: Hebrew Streaming STT | Pending |
+| STT-06 | Phase 2: Hebrew Streaming STT | Complete (02-06) |
 | LLM-01 | Phase 3: Hebrew Suggestion LLM | Pending |
 | LLM-02 | Phase 3: Hebrew Suggestion LLM | Pending |
 | LLM-03 | Phase 3: Hebrew Suggestion LLM | Pending |
