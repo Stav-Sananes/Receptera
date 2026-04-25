@@ -45,5 +45,33 @@ class Settings(BaseSettings):
     # machine. See docs/stt.md §Audit log + PII warning.
     stt_log_text_redaction_disabled: bool = False
 
+    # --- Phase 3 LLM (Hebrew Suggestion Engine) — defaults locked by 03-RESEARCH §6.5 + §3.3 ---
+    # Primary Ollama model tag (registered by `make models dictalm`); fallback used
+    # only when the primary is missing from `ollama list`.
+    llm_model_tag: str = "dictalm3"
+    llm_model_fallback: str = "qwen2.5:7b"
+
+    # Generation parameters — temperature=0.0 is the grounding lock (Pitfall E
+    # in 03-RESEARCH; deterministic output enables grounded refusal). Override
+    # via `RECEPTRA_LLM_TEMPERATURE=...` only for prompt-tuning experiments.
+    llm_temperature: float = 0.0
+    llm_num_predict: int = 512
+    llm_num_ctx: int = 8192
+    llm_top_p: float = 0.9
+
+    # AsyncClient request timeout. 30 s absorbs cold-start (~5 s on first call
+    # after Ollama process restart) without indefinitely wedging the WS hot path.
+    llm_request_timeout_s: float = 30.0
+
+    # System-prompt language. 'he' (Hebrew, default — DictaLM 3.0 is Hebrew-native)
+    # vs 'en' (English fallback for Phase 7 A/B). Locked OPEN-LLM-2.
+    llm_system_prompt_lang: str = "he"
+
+    # When True, the loguru `event="llm.call"` log line INCLUDES the raw transcript
+    # body. Default False — Hebrew transcripts are PII (mirrors stt_log_text_redaction_disabled
+    # from Plan 02-06). Enable ONLY for local debugging; weakens the PII boundary
+    # documented in docs/llm.md.
+    llm_log_text_redaction_disabled: bool = False
+
 
 settings = Settings()
