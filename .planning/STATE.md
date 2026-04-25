@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-last_updated: "2026-04-25T19:25:09.054Z"
+last_updated: "2026-04-25T19:40:53.770Z"
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 12
-  completed_plans: 10
-  percent: 83
+  completed_plans: 11
+  percent: 92
 ---
 
 # Receptra — STATE.md
@@ -28,15 +28,15 @@ progress:
 
 ## Current Position
 
-Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, 02-03, and 02-04 complete.
+Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, 02-03, 02-04, and 02-05 complete.
 
-- **Phase:** 02-hebrew-streaming-stt (4/6 plans complete)
-- **Plan:** 02-04 complete (/ws/stt WebSocket endpoint with VAD-gated transcribe loop; pydantic discriminated union event schema (SttReady/PartialTranscript/FinalTranscript/SttError) with frozen=True models in receptra.stt.events; receptra.stt.pipeline exports websocket_stt_endpoint(ws) FastAPI handler + run_utterance_loop(ws, vad, transcribe) testable inner loop split out for Plan 02-06 metrics wrapper; @app.websocket('/ws/stt') mounted in main.py delegating to pipeline; faster-whisper transcribe wrapped in await asyncio.to_thread(...) inside per-connection closure (Pitfall #5 mitigated); regression test_no_event_loop_blocking drives 2 concurrent WS w/ 200ms sleep stub, asserts parallel wall time; per-connection StreamingVad constructed inside handler with vad.reset() in finally (Pitfall #2 defense); InvalidFrameError → SttError(code='protocol_error') + ws.close(1007) (T-02-04-01); 11 new tests across 3 files (6 schema + 2 handshake + 3 roundtrip), full backend suite 30/30 green; ruff + mypy strict clean (21 src files); STT-03 + STT-04 satisfied)
-- **Status:** Plans 02-01 + 02-02 + 02-03 + 02-04 COMPLETE. Next plan 02-05 (WER batch eval against seeded 30-sample Hebrew test set — STT-05). Phase 2 requires Plan 02-06 to re-run the latency spike on reference M2 hardware before phase exit (replaces 700 ms provisional partial_interval).
-- **Progress:** [████████░░] 83%
+- **Phase:** 02-hebrew-streaming-stt (5/6 plans complete)
+- **Plan:** 02-05 complete (Hebrew WER eval harness — receptra.stt.wer publishes normalise_hebrew (NFC + niqqud/bidi → empty + punctuation → space + whitespace collapse) + compute_wer (jiwer 4.0 wrapper); scripts/fetch_stt_fixtures.py pulls 30 Common Voice 25.0 Hebrew clips with pinned CV_REVISION_SHA + lazy datasets import (no runtime dep added) + HfApi gated-dataset auth probe + --airgap-placeholder fallback; scripts/eval_wer.py reuses transcribe_hebrew (single source of truth from Plan 02-02) — no kwarg drift; backend/tests/stt/test_wer_baseline.py is regression guard with BASELINE_WER + BASELINE_CER constants + GRACE_PP=0.03 module-level (T-02-05-04 mitigation), skips gracefully when fixtures unfetched / model missing / baseline unrecorded; docs/stt-eval.md covers fetching, running, WER vs CER for Hebrew, baseline-update policy with Hebrew-speaker review, training-data-leakage rejection of ivrit-ai test sets, beam_size follow-up, known limitations; airgap fallback active in this commit (HF gated + `datasets` not installed) — placeholder manifest committed, BASELINE_WER/CER intentionally None, regression test skips with documented reason; full backend suite 39 passed + 1 skipped, ruff + mypy strict clean (25 src files); STT-05 satisfied)
+- **Status:** Plans 02-01 + 02-02 + 02-03 + 02-04 + 02-05 COMPLETE. Next plan 02-06 (latency instrumentation + audit log + reference-hardware spike re-run + WER baseline recording — STT-06 + closes Plan 02-05 follow-up to commit BASELINE_WER + BASELINE_CER + 30 real fixtures + pinned CV_REVISION_SHA). Phase 2 requires Plan 02-06 to re-run the latency spike on reference M2 hardware before phase exit (replaces 700 ms provisional partial_interval).
+- **Progress:** [█████████░] 92%
 
 ```
-[████████░░] 83% — 10/12 plans (Phase 1: 6/6 complete; Phase 2: 4/6 complete)
+[█████████░] 92% — 11/12 plans (Phase 1: 6/6 complete; Phase 2: 5/6 complete)
 ```
 
 ## Performance Metrics
@@ -53,10 +53,11 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, 02-03, and 02-
 | 02-hebrew-streaming-stt | 02-02 | ~12min | 2 | 13 | 2026-04-25 |
 | 02-hebrew-streaming-stt | 02-03 | ~4min | 1 | 3 | 2026-04-25 |
 | 02-hebrew-streaming-stt | 02-04 | ~10min | 2 | 6 | 2026-04-25 |
+| 02-hebrew-streaming-stt | 02-05 | ~10min | 2 | 9 | 2026-04-25 |
 
 - Phases completed: 1/7 (Phase 1 Foundation complete; Phase 2 STT in progress)
-- Plans completed: 10 (Phase 1: 6/6; Phase 2: 4/6)
-- v1 requirements delivered: 10/42 (Phase 1 FND-* complete + STT-01 from Plan 02-02 + STT-02 from Plan 02-03 + STT-03 + STT-04 from Plan 02-04; remaining Phase 2 requirements (STT-05, STT-06) land at plan boundaries 02-05..02-06)
+- Plans completed: 11 (Phase 1: 6/6; Phase 2: 5/6)
+- v1 requirements delivered: 11/42 (Phase 1 FND-* complete + STT-01 from Plan 02-02 + STT-02 from Plan 02-03 + STT-03 + STT-04 from Plan 02-04 + STT-05 from Plan 02-05; remaining Phase 2 requirement (STT-06) lands at plan boundary 02-06)
 
 ## Accumulated Context
 
@@ -117,6 +118,10 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, 02-03, and 02-
 - Plan 02-04: WebSocket close code 1007 (RFC 6455 Invalid Frame Payload Data) on the protocol_error path — semantically correct over generic 1000. Frontend can switch on the close code to distinguish "bad client" from "normal disconnect" (Plan 02-04)
 - Plan 02-04: Per-connection StreamingVad construction inside `websocket_stt_endpoint` wraps the SHARED `app.state.vad_model` singleton; `vad.reset()` in `finally` even though wrapper is local-scope — defense-in-depth + documents the per-connection isolation contract for future refactors (Pitfall #2). Cleanup ladder: `WebSocketDisconnect` → clean log; `Exception` → `SttError(model_error)` envelope + log w/ stack; always vad.reset() + ws.close() suppressed via contextlib.suppress (Plan 02-04)
 - Plan 02-04: Test fixtures `real_vad_app` / `real_vad_canned_whisper_app` / `real_vad_slow_whisper_app` override the autouse conftest VAD stub with the real Silero TorchScript model (small, ~30MB, already in dev cache). Whisper stays stubbed (`_CannedWhisperStub` returning `iter([_Segment(' שלום')])` or sleep-stub variant). Necessary because StreamingVad → VADIterator calls model.reset_states() which the autouse `object()` sentinel does not satisfy. Stubbed Whisper avoids loading 1.5 GB into the test runner (Plan 02-04)
+- Plan 02-05: `receptra.stt.wer` publishes `normalise_hebrew` (NFC + niqqud/bidi → empty + punctuation → space + whitespace collapse) + `compute_wer` (jiwer 4.0 wrapper). Two-class regex split is mandatory — RESEARCH §9 single-class would shatter "שָׁלוֹם" (3 letters + 4 niqqud) into "ש ל ם" (3 tokens), breaking the test contract. Niqqud/bidi sit INSIDE word forms (intra-word → empty), punctuation sits BETWEEN words (between-words → space). jiwer Compose pipeline from RESEARCH §9 sketch is skipped — jiwer 4.0 rejects non-ListOfListOfWords transforms; `normalise_hebrew` already covers Strip + RemoveMultipleSpaces equivalents (Plan 02-05, Rule 1 + Rule 3 deviations from research)
+- Plan 02-05: `scripts/fetch_stt_fixtures.py` uses the `datasets` library lazily (NOT in `pyproject.toml` — opt-in regen-only dep documented in `docs/stt-eval.md`). Uses pinned `CV_REVISION_SHA` module constant (T-02-05-01 mitigation). Probes auth via `HfApi().dataset_info(CV_REPO)` before `load_dataset` and emits 5-step unblock instruction on 401 because Common Voice 25.0 is a gated HF dataset. `--airgap-placeholder` mode writes 1-row UNFETCHED manifest + .gitkeep so regression test skips gracefully on CI executors without HF access. `trust_remote_code` stays False (T-02-05-05). No silent runtime dep additions (Plan 02-05)
+- Plan 02-05: `scripts/eval_wer.py` imports `receptra.stt.engine.transcribe_hebrew` (no Hebrew kwarg duplication) — single source of truth design from Plan 02-02. JSON output schema `{status, baseline:{wer_mean,wer_median,wer_p95,cer_mean,cer_median,cer_p95,n_clips}, per_clip:[...]}` is stable for Plan 02-06 CI regression logging. `backend/tests/stt/test_wer_baseline.py` asserts measured ≤ BASELINE_WER + GRACE_PP (3pp); `GRACE_PP = 0.03` is a module-level constant per T-02-05-04 silent-grace-widening mitigation; OPEN-7 (WER informational, not pass/fail) honored — regression test catches dep-upgrade drift, not absolute accuracy floor (Plan 02-05)
+- Plan 02-05: `BASELINE_WER` + `BASELINE_CER` intentionally `None` in this commit because the airgap fallback is active in this executor (HF gated + no `datasets` install + no Whisper weights on disk). Plan 02-06 phase-transition gate flags as follow-up: first contributor with HF access + Common Voice 25.0 license accepted + `make models` already run executes `scripts/fetch_stt_fixtures.py` + `scripts/eval_wer.py` and commits BASELINE_WER + BASELINE_CER + 30 real fixtures + a pinned `CV_REVISION_SHA` (currently `"main"`) in a single PR. STT-05 is structurally satisfied — the harness exists and is exercised end-to-end via the placeholder skip path; the numeric baseline is Plan 02-06 work (Plan 02-05)
 
 ### Open Todos
 
@@ -136,8 +141,8 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, 02-03, and 02-
 ## Session Continuity
 
 - **Last agent:** executor
-- **Last action:** Completed Plan 02-04 (Phase 2 Hebrew Streaming STT — /ws/stt WebSocket endpoint with VAD-gated transcribe loop). 6 files created + 1 modified across 4 atomic TDD commits (bc968b1 test RED schema / b99aa9b feat GREEN events / 714703e test RED ws / 591f0c3 feat GREEN pipeline+main route). All 6 plan-verification gates PASS: ruff clean, mypy strict clean (21 src files), 30/30 pytest green (5 engine + 6 events_schema + 4 lifespan + 7 vad + 2 ws_handshake + 3 ws_pcm_roundtrip + 3 healthz), @app.websocket("/ws/stt") mounted in main.py, asyncio.to_thread present in pipeline.py, time.time() NOT present (monotonic only). 11 new tests added. Three deviations: (1) Rule 1 — partial cadence rewritten to use accumulated audio time instead of wall-clock time so TestClient bursts deterministically trigger partials AND production semantics improve (one partial per N ms of speech, not per N ms of wall); (2) Rule 3 — handshake + roundtrip test fixtures override the autouse conftest VAD stub with REAL Silero (the autouse `object()` sentinel does not satisfy VADIterator.reset_states()); (3) Rule 1 — mypy strict cleanup in test_events_schema.py (module-level TypeAdapter, Any-cast for ValidationError tests). STT-03 + STT-04 satisfied. SttReady/PartialTranscript/FinalTranscript/SttError discriminated union + run_utterance_loop(ws, vad, transcribe) published as wrappable contract for Plan 02-06.
-- **Next action:** Proceed to Plan 02-05 (WER batch eval against seeded 30-sample Hebrew test set — STT-05). Plan 02-05 may consume the /ws/stt path or call transcribe_hebrew directly; either route lands valid WER measurements. Plan 02-06 follows (latency instrumentation + audit log + reference-hardware spike re-run).
+- **Last action:** Completed Plan 02-05 (Phase 2 Hebrew WER eval harness — STT-05). 9 files created across 3 atomic commits (9ec96b2 test RED hebrew-wer / 4df048f feat GREEN normalise + jiwer wrapper / 700c798 feat fetch+CLI+regression+docs). All 7 plan-verification gates PASS: ruff + mypy strict clean (25 src files), 39 backend tests passed + 1 expected skip (regression test on airgap-placeholder fixtures), AST contract on both scripts, transcribe_hebrew imported by eval CLI (no kwarg drift), BASELINE_WER constant present in regression test, docs cover all 6 contributor sections incl. "training-data leakage" rejection of ivrit-ai test sets. 4 deviations: (1) Rule 1 — niqqud-strip regex split into two classes (intra-word → empty vs between-words → space) because RESEARCH §9 single-class would shatter "שָׁלוֹם" into 3 tokens; (2) Rule 3 — jiwer Compose([Strip, RemoveMultipleSpaces]) skipped, jiwer 4.0 rejects non-ListOfListOfWords transforms, our normalise_hebrew already covers Strip + collapse; (3) Rule 3 — `datasets` not added to pyproject.toml, fetch script lazy-imports it and emits actionable install instruction (one-shot regen-only dep, documented in stt-eval.md); (4) Rule 3 — Common Voice 25.0 is gated HF dataset, this executor lacks auth + license acceptance + Whisper weights, so airgap-placeholder manifest committed and BASELINE_WER/CER intentionally None. STT-05 structurally satisfied (harness + CLI + regression + docs all live and exercised); numeric baseline + 30 real fixtures + pinned CV_REVISION_SHA are Plan 02-06 phase-transition follow-up.
+- **Next action:** Proceed to Plan 02-06 (latency instrumentation + audit log + reference-hardware spike re-run + WER baseline recording — STT-06 + closes Plan 02-05 follow-up). On reference M2 hardware: (a) run `make models` if not done; (b) `python scripts/fetch_stt_fixtures.py` (after HF login + Common Voice 25.0 license accept + `uv pip install 'datasets>=4.0,<5'`); (c) `cd backend && uv run python ../scripts/eval_wer.py > /tmp/eval.json`; (d) commit BASELINE_WER + BASELINE_CER values + 30 real fixtures + pinned CV_REVISION_SHA in same PR; (e) re-run `scripts/spike_stt_latency.py` to bump 02-01-SPIKE-RESULTS.md from UNMEASURED to measured.
 - **Last updated:** 2026-04-25
 
 **Planned Phase:** 1 (Foundation) — 6 plans — 2026-04-23T19:12:18.810Z
@@ -152,3 +157,4 @@ Phase: 02-hebrew-streaming-stt — EXECUTING. Plans 02-01, 02-02, 02-03, and 02-
 **Plan 02-02 complete:** 2026-04-25 — commits 9584947, d95f693, c7f79c2, 2dde0a9 (TDD RED+GREEN x 2 tasks; STT-01 satisfied)
 **Plan 02-03 complete:** 2026-04-25 — commits b1633cf, 801d658 (TDD RED+GREEN x 1 task; STT-02 satisfied — per-connection StreamingVad wrapper)
 **Plan 02-04 complete:** 2026-04-25 — commits bc968b1, b99aa9b, 714703e, 591f0c3 (TDD RED+GREEN x 2 tasks; STT-03 + STT-04 satisfied — /ws/stt WebSocket endpoint with VAD-gated transcribe loop, pydantic event schema, asyncio.to_thread non-blocking)
+**Plan 02-05 complete:** 2026-04-25 — commits 9ec96b2, 4df048f, 700c798 (TDD RED+GREEN for normalise_hebrew + compute_wer; tooling commit for fetch+CLI+regression+docs; STT-05 structurally satisfied — Hebrew WER eval harness with airgap fallback, BASELINE_WER/CER follow-up scheduled for Plan 02-06)

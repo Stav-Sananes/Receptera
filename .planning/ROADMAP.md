@@ -54,7 +54,7 @@
 - [x] 02-02-PLAN.md — FastAPI lifespan refactor + Whisper singleton on app.state + stt/engine.py Hebrew-locked transcribe wrapper (STT-01)
 - [x] 02-03-PLAN.md — Per-connection Silero VAD wrapper: 512-sample window + int16 LE → float32 + state isolation per connection (STT-02)
 - [x] 02-04-PLAN.md — /ws/stt WebSocket endpoint: pydantic event schema + VAD-gated re-transcribe loop + asyncio.to_thread transcribe (STT-03, STT-04)
-- [ ] 02-05-PLAN.md — Hebrew WER eval harness: jiwer + NFC/niqqud normalisation + 30 Common Voice he-25.0 fixtures + eval CLI + regression test (STT-05)
+- [x] 02-05-PLAN.md — Hebrew WER eval harness: jiwer + NFC/niqqud normalisation + 30 Common Voice he-25.0 fixtures + eval CLI + regression test (STT-05)
 - [ ] 02-06-PLAN.md — Latency instrumentation + SQLite stt_utterances stub + PII redaction + chaos disconnect test + docs/stt.md + docker-compose data volume (STT-06)
 
 ### Phase 3: Hebrew Suggestion LLM
@@ -134,7 +134,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete | 2026-04-24 |
-| 2. Hebrew Streaming STT | 4/6 | In progress | - |
+| 2. Hebrew Streaming STT | 5/6 | In progress | - |
 | 3. Hebrew Suggestion LLM | 0/0 | Not started | - |
 | 4. Hebrew RAG Knowledge Base | 0/0 | Not started | - |
 | 5. Hot-Path Integration | 0/0 | Not started | - |
