@@ -8,11 +8,15 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
+if TYPE_CHECKING:
+    from receptra.stt.metrics import UtteranceMetrics
 
-def _make_metrics(text: str = "שלום עולם"):
+
+def _make_metrics(text: str = "שלום עולם") -> UtteranceMetrics:
     from receptra.stt.metrics import UtteranceMetrics, new_utterance_id, utc_now_iso
 
     return UtteranceMetrics(

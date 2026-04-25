@@ -49,8 +49,17 @@ knowledge/*
 !knowledge/sample/
 !knowledge/sample/**
 
-# Docker runtime data
-data/
+# Docker runtime data — host-bind volume targets. Plan 02-06 reserves
+# ./data/ as the SQLite audit-log mount point (./data:/app/data:rw in
+# docker-compose.yml). All contents are local + PII-bearing → never
+# committed; the .gitkeep stub is the one exception so the dir survives
+# fresh clones before `make up` has run.
+data/*
+!data/.gitkeep
+# Catch test-time side effects that escape the volume contract: tests run
+# from ``cd backend`` resolve ``./data/audit.sqlite`` under backend/data/.
+# Always ignore — the canonical persistence is at the repo-root data/.
+backend/data/
 .receptra/
 
 # IDE / editor

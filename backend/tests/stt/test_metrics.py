@@ -11,9 +11,13 @@ from __future__ import annotations
 import io
 import json
 from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 import pytest
 from loguru import logger
+
+if TYPE_CHECKING:
+    from receptra.stt.metrics import UtteranceMetrics
 
 
 @pytest.fixture
@@ -35,7 +39,8 @@ def _last_record(buf: io.StringIO) -> dict[str, object]:
     """Pull the last serialized loguru line out of the buffer as a dict."""
     lines = [line for line in buf.getvalue().splitlines() if line.strip()]
     assert lines, "no log lines captured"
-    return json.loads(lines[-1])
+    parsed: dict[str, object] = json.loads(lines[-1])
+    return parsed
 
 
 def _make_metrics(
@@ -43,7 +48,7 @@ def _make_metrics(
     text: str = "שלום עולם",
     t_speech_end_ms: int = 1000,
     t_final_ready_ms: int = 1420,
-):
+) -> UtteranceMetrics:
     from receptra.stt.metrics import UtteranceMetrics, new_utterance_id, utc_now_iso
 
     return UtteranceMetrics(
@@ -78,8 +83,10 @@ def test_log_utterance_redacts_text_by_default(
     assert "שלום" not in serialized
     # Metadata fields are present in the structured payload (loguru places the
     # dict we logged into rec["record"]["message"] OR rec["record"]["extra"]).
-    extra = rec["record"]["extra"]
-    msg_str = str(rec["record"]["message"])
+    record = rec["record"]
+    assert isinstance(record, dict)
+    extra = record["extra"]
+    msg_str = str(record["message"])
     payload_str = json.dumps(extra, ensure_ascii=False) + msg_str
     assert m.utterance_id in payload_str
     assert "stt_latency_ms" in payload_str

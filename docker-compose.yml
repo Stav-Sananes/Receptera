@@ -43,9 +43,15 @@ services:
       RECEPTRA_OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
       RECEPTRA_CHROMA_HOST: ${CHROMA_HOST:-http://chromadb:8000}
       RECEPTRA_LOG_LEVEL: ${RECEPTRA_LOG_LEVEL:-INFO}
+      # Phase 2 STT — audit DB inside the persistent ./data volume below.
+      RECEPTRA_AUDIT_DB_PATH: /app/data/audit.sqlite
     volumes:
       # Model weights mounted read-only from host. MODEL_DIR defaults to ~/.receptra/models.
       - ${MODEL_DIR:-~/.receptra/models}:/models:ro
+      # Phase 2 STT audit log persistence (Plan 02-06). Hebrew transcripts (PII)
+      # are written here — the host ./data dir is .gitignored. See docs/stt.md
+      # §Audit log + PII warning. Phase 5 (INT-05) extends the schema in place.
+      - ./data:/app/data:rw
     extra_hosts:
       # Linux contributors need this explicitly; no-op on macOS Docker Desktop.
       - "host.docker.internal:host-gateway"

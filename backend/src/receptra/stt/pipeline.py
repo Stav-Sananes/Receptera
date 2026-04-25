@@ -47,8 +47,15 @@ from loguru import logger
 from numpy.typing import NDArray
 
 from receptra.config import settings
+from receptra.stt.audit import init_audit_db, insert_stt_utterance
 from receptra.stt.engine import transcribe_hebrew
 from receptra.stt.events import FinalTranscript, PartialTranscript, SttError, SttReady
+from receptra.stt.metrics import (
+    UtteranceMetrics,
+    log_utterance,
+    new_utterance_id,
+    utc_now_iso,
+)
 from receptra.stt.vad import FRAME_BYTES, InvalidFrameError, StreamingVad
 
 # RESEARCH §7 — Whisper quality degrades on <500 ms of audio. The first
@@ -93,6 +100,17 @@ async def websocket_stt_endpoint(ws: WebSocket) -> None:
     in the ``finally`` block.
     """
     await ws.accept()
+
+    # T-02-06-06 — lazy idempotent SQLite init on every connection accept.
+    # Cheap (single CREATE TABLE IF NOT EXISTS) and ensures the parent dir
+    # exists before any insert runs. Wrapped in try/except so an audit-db
+    # creation failure DOES NOT bring down the WS hot path.
+    try:
+        init_audit_db(settings.audit_db_path)
+    except Exception as e:  # pragma: no cover — defensive
+        logger.bind(event="stt.audit.init_failed").error(
+            {"path": settings.audit_db_path, "err": str(e)}
+        )
 
     whisper = ws.app.state.whisper
     vad_model = ws.app.state.vad_model
@@ -172,6 +190,9 @@ async def run_utterance_loop(
     t_speech_start_ms = 0
     audio_ms_at_last_partial = 0
     in_speech = False
+    # Per-utterance audit state (STT-06). Reset on every VAD-start.
+    utterance_id = ""
+    partials_emitted = 0
 
     while True:
         frame = await ws.receive_bytes()
@@ -195,6 +216,9 @@ async def run_utterance_loop(
             speech_buffer = [frame_f32]
             t_speech_start_ms = now_ms
             audio_ms_at_last_partial = 0
+            # New utterance — fresh id + reset partial counter (STT-06).
+            utterance_id = new_utterance_id()
+            partials_emitted = 0
             continue
 
         if in_speech and event is None:
@@ -225,6 +249,7 @@ async def run_utterance_loop(
                     ).model_dump()
                 )
                 audio_ms_at_last_partial = audio_ms
+                partials_emitted += 1
             continue
 
         if event is not None and event["kind"] == "end" and in_speech:
@@ -241,9 +266,11 @@ async def run_utterance_loop(
             combined = np.concatenate(speech_buffer)
             duration_ms = (combined.shape[0] * 1000) // 16000
 
+            t_transcribe_start_ms = _now_ms()
             text = await transcribe(combined)
             t_final_ready_ms = _now_ms()
             stt_latency_ms = max(0, t_final_ready_ms - t_speech_end_ms)
+            transcribe_ms = max(0, t_final_ready_ms - t_transcribe_start_ms)
 
             await ws.send_json(
                 FinalTranscript(
@@ -255,6 +282,38 @@ async def run_utterance_loop(
                 ).model_dump()
             )
 
+            # STT-06 — emit per-utterance metrics + audit row AFTER the
+            # final has reached the wire. log_utterance is in-process
+            # (~µs), insert is sync sqlite3 (~ms). Both wrapped in
+            # try/except: a logging or DB failure MUST NOT crash the WS
+            # loop. T-02-06-03 — only completed utterances reach this
+            # point, so half-written rows are impossible.
+            metrics = UtteranceMetrics(
+                utterance_id=utterance_id,
+                ts_utc=utc_now_iso(),
+                t_speech_start_ms=t_speech_start_ms,
+                t_speech_end_ms=t_speech_end_ms,
+                t_final_ready_ms=t_final_ready_ms,
+                duration_ms=duration_ms,
+                transcribe_ms=transcribe_ms,
+                partials_emitted=partials_emitted,
+                text=text,
+                text_len_chars=len(text),
+                wer_sample_id=None,
+            )
+            try:
+                log_utterance(metrics)
+            except Exception as e:  # pragma: no cover — defensive
+                logger.bind(event="stt.metrics.log_failed").error(
+                    {"utterance_id": utterance_id, "err": str(e)}
+                )
+            try:
+                insert_stt_utterance(settings.audit_db_path, metrics)
+            except Exception as e:
+                logger.bind(event="stt.audit.insert_failed").error(
+                    {"utterance_id": utterance_id, "err": str(e)}
+                )
+
             # Reset utterance state — the underlying VADIterator carries
             # silero's segmentation state across utterances on the same
             # connection (multi-utterance streaming is a Phase 7
@@ -262,6 +321,8 @@ async def run_utterance_loop(
             speech_buffer = []
             in_speech = False
             t_speech_start_ms = 0
+            utterance_id = ""
+            partials_emitted = 0
 
 
 # Re-export the constant module-readers expect to find here.
