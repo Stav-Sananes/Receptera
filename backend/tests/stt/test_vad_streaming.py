@@ -29,7 +29,6 @@ from receptra.stt.vad import (
     VadEvent,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures + helpers
 # ---------------------------------------------------------------------------
@@ -52,17 +51,57 @@ def _silence_frame() -> bytes:
     return b"\x00" * FRAME_BYTES
 
 
-def _tone_frame(
-    freq_hz: float = 1000.0,
+def _voiced_frame(
     n_samples: int = FRAME_SAMPLES,
     sr: int = SAMPLE_RATE_HZ,
-    amp: float = 0.5,
+    amp: float = 0.7,
     phase: float = 0.0,
 ) -> bytes:
-    """Generate one 512-sample int16 LE frame of a sine tone."""
+    """Generate a speech-like int16 LE frame that crosses Silero's threshold.
+
+    Silero VAD is trained on real speech, not pure sine tones. A static
+    harmonic stack barely registers (raw prob ~0.1-0.2). What Silero
+    actually responds to is the *combination* of pitch wobble (FM),
+    syllable-rate amplitude modulation (AM ~5 Hz), a deep harmonic stack
+    (8 harmonics), and broadband noise. That mimics the spectral signature
+    of voiced speech well enough to drive the model above 0.9 reliably,
+    without bundling a recorded WAV asset into the test suite.
+    """
     t = np.arange(n_samples, dtype=np.float64) / sr + phase
-    sig = (amp * np.sin(2 * np.pi * freq_hz * t) * 32767).astype("<i2")
-    return sig.tobytes()
+
+    # Pitch wobble (~130 Hz mean, ±30 Hz at ~4 Hz vibrato).
+    f0 = 130.0 + 30.0 * np.sin(2.0 * np.pi * 4.0 * t)
+
+    # FM-synthesized harmonic stack — instantaneous-phase integration so
+    # the harmonics track the wobbling f0 smoothly.
+    sig = np.zeros(n_samples, dtype=np.float64)
+    for harmonic, harm_amp in (
+        (1, 0.5),
+        (2, 0.4),
+        (3, 0.3),
+        (4, 0.2),
+        (5, 0.15),
+        (6, 0.1),
+        (7, 0.08),
+        (8, 0.05),
+    ):
+        inst_phase = np.cumsum(2.0 * np.pi * f0 * harmonic / sr) + 0.7 * harmonic
+        sig += harm_amp * np.sin(inst_phase)
+
+    # Syllable-rate AM envelope (5 Hz).
+    sig *= 0.5 + 0.5 * np.sin(2.0 * np.pi * 5.0 * t)
+
+    # Breath / fricative-like broadband noise.
+    # Seeded by the integer-rounded phase so identical phases produce identical
+    # noise — this keeps the synthesizer stateless and makes test ordering
+    # irrelevant (each test's voiced burst sees the same waveform).
+    noise_seed = int(phase * sr) & 0xFFFFFFFF
+    noise_rng = np.random.default_rng(noise_seed)
+    sig += 0.15 * noise_rng.standard_normal(n_samples)
+
+    sig = sig * amp
+    pcm = (np.clip(sig, -1.0, 1.0) * 32767).astype("<i2")
+    return pcm.tobytes()
 
 
 def _make_vad(model: Any) -> StreamingVad:
@@ -109,50 +148,48 @@ def test_silence_produces_no_event(silero_model: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 3 — Tone burst yields a speech-start event
+# Test 3 — Voiced burst yields a speech-start event
 # ---------------------------------------------------------------------------
 
 
 def test_tone_burst_produces_start_event(silero_model: Any) -> None:
-    """A loud sine burst surfaces at least one ``kind == 'start'`` event."""
+    """A voiced (speech-like) burst surfaces at least one ``kind == 'start'`` event."""
     vad = _make_vad(silero_model)
 
-    # 5 silence frames to settle, then 30 tone frames with continuous phase
-    # so the model is convinced this is real speech-like energy.
+    # 5 silence frames to settle, then up to 30 voiced frames with continuous
+    # phase so the harmonic stack stays smooth across frame boundaries
+    # (Silero is sensitive to phase discontinuities).
     for _ in range(5):
         vad.feed(_silence_frame())
 
     saw_start = False
     for i in range(30):
-        # Phase-continuous tone: each 32 ms frame picks up where the last
-        # left off so the waveform stays smooth (Silero's energy detector
-        # cares about continuity).
         phase = (i * FRAME_SAMPLES) / SAMPLE_RATE_HZ
-        ev = vad.feed(_tone_frame(phase=phase))
+        ev = vad.feed(_voiced_frame(phase=phase))
         if ev is not None and ev["kind"] == "start":
             saw_start = True
             assert ev["t_ms"] >= 0
             break
 
-    assert saw_start, "expected at least one 'start' event during tone burst"
+    assert saw_start, "expected at least one 'start' event during voiced burst"
 
 
 # ---------------------------------------------------------------------------
-# Test 4 — Silence after tone yields a speech-end event
+# Test 4 — Silence after voiced burst yields a speech-end event
 # ---------------------------------------------------------------------------
 
 
 def test_silence_after_tone_produces_end_event(silero_model: Any) -> None:
-    """Tone → silence sequence eventually emits a ``kind == 'end'`` event."""
+    """Voiced → silence sequence eventually emits a ``kind == 'end'`` event."""
     vad = _make_vad(silero_model)
 
     # Drive into active speech.
     for i in range(30):
         phase = (i * FRAME_SAMPLES) / SAMPLE_RATE_HZ
-        vad.feed(_tone_frame(phase=phase))
+        vad.feed(_voiced_frame(phase=phase))
 
     # Then >300 ms of silence (min_silence_ms) — feed enough frames that the
-    # speech-end timer is guaranteed to fire. 32 ms/frame × 40 = 1.28 s.
+    # speech-end timer is guaranteed to fire. 32 ms/frame * 40 = 1.28 s.
     saw_end = False
     for _ in range(40):
         ev = vad.feed(_silence_frame())
@@ -173,8 +210,9 @@ def test_two_instances_have_independent_state(silero_model: Any) -> None:
     """Instance A's speech state MUST NOT leak into instance B.
 
     Construct TWO ``StreamingVad`` wrappers around the SAME shared Silero
-    model. Drive A through a tone burst (A enters active-speech mode). Then
-    feed silence to B. B was never in active speech → must NOT emit 'end'.
+    model. Drive A through a voiced burst (A enters active-speech mode).
+    Then feed silence to B. B was never in active speech → must NOT emit
+    'end'.
     """
     vad_a = _make_vad(silero_model)
     vad_b = _make_vad(silero_model)
@@ -182,7 +220,7 @@ def test_two_instances_have_independent_state(silero_model: Any) -> None:
     # Push A into active speech.
     for i in range(20):
         phase = (i * FRAME_SAMPLES) / SAMPLE_RATE_HZ
-        vad_a.feed(_tone_frame(phase=phase))
+        vad_a.feed(_voiced_frame(phase=phase))
 
     # B has only ever seen silence (which we are about to feed it). If state
     # leaked from A → B via a shared VADIterator, the next 40 silence frames
@@ -206,7 +244,7 @@ def test_reset_clears_state(silero_model: Any) -> None:
     # Drive into active speech.
     for i in range(20):
         phase = (i * FRAME_SAMPLES) / SAMPLE_RATE_HZ
-        vad.feed(_tone_frame(phase=phase))
+        vad.feed(_voiced_frame(phase=phase))
 
     vad.reset()
 
