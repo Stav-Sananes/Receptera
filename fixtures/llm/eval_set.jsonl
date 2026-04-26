@@ -1,0 +1,5 @@
+{"id":"eval-001","transcript":"תוך כמה זמן אני יכול להחזיר מוצר?","context":[{"id":"kb-policy-returns","text":"מדיניות החזרים: ניתן להחזיר מוצר תוך 14 יום מיום הקנייה עם החשבונית המקורית."}],"expected":{"grounded":true,"refusal":false}}
+{"id":"eval-002","transcript":"מה שעות הפעילות של החנות?","context":[{"id":"kb-policy-returns","text":"מדיניות החזרים: ניתן להחזיר מוצר תוך 14 יום מיום הקנייה עם החשבונית המקורית."}],"expected":{"grounded":false,"refusal":true}}
+{"id":"eval-003","transcript":"איך אני יכול ליצור איתכם קשר?","context":[],"expected":{"grounded":false,"refusal":true}}
+{"id":"eval-004","transcript":"מתי אני יכול לאסוף את ההזמנה?","context":[{"id":"kb-policy-returns","text":"מדיניות החזרים: ניתן להחזיר מוצר תוך 14 יום מיום הקנייה עם החשבונית המקורית."},{"id":"kb-policy-pickup","text":"איסוף הזמנות: ניתן לאסוף הזמנות בסניף בימים א-ה בין 09:00 ל-18:00, ובימי שישי בין 09:00 ל-13:00."}],"expected":{"grounded":true,"refusal":false}}
+{"id":"eval-005","transcript":"החזרים?","context":[{"id":"kb-policy-returns","text":"מדיניות החזרים: ניתן להחזיר מוצר תוך 14 יום מיום הקנייה עם החשבונית המקורית."}],"expected":{"grounded":true,"refusal":false}}
