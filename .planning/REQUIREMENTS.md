@@ -44,7 +44,8 @@
 
 - [ ] **RAG-01**: BGE-M3 embeddings run via Ollama and produce vectors for Hebrew text
 - [ ] **RAG-02**: ChromaDB persists embeddings to a mounted volume and survives container restarts
-- [ ] **RAG-03**: KB ingest pipeline accepts `.md` and `.txt` files, uses Hebrew-aware sentence chunking (via `hebrew-nlp-toolkit` skill), embeds, and stores
+- [x] **RAG-03
+**: KB ingest pipeline accepts `.md` and `.txt` files, uses Hebrew-aware sentence chunking (via `hebrew-nlp-toolkit` skill), embeds, and stores
 - [ ] **RAG-04**: Retrieval endpoint returns top-K chunks with source metadata (filename, chunk offset) for a Hebrew query
 - [ ] **RAG-05**: Retrieval quality is verified on a seeded Hebrew KB with 10 adversarial questions measuring recall@5
 - [ ] **RAG-06**: Ingest is exposed via a REST endpoint the frontend can call
@@ -128,7 +129,7 @@
 | LLM-06 | Phase 3: Hebrew Suggestion LLM | Complete (03-06 — scripts/eval_llm.py argparse CLI harness with single-shot + eval-set modes, 8 flags, exit codes 0/1/2; subprocess STT-isolation regression test enumerating 7 forbidden module prefixes (receptra.stt + faster_whisper + silero_vad + torch + onnxruntime + ctranslate2 + av); 4 fixtures in fixtures/llm/; docs/llm.md 531 lines parallel to docs/stt.md) |
 | RAG-01 | Phase 4: Hebrew RAG Knowledge Base | Partial (04-01 plumbing — chromadb-client thin pin + 4 Settings + Ollama BGE-M3 triple-gated smoke; full delivery in 04-03 BgeM3Embedder) |
 | RAG-02 | Phase 4: Hebrew RAG Knowledge Base | Pending |
-| RAG-03 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| RAG-03 | Phase 4: Hebrew RAG Knowledge Base | Complete (04-02 — receptra.rag.chunker pure-stdlib Hebrew sentence-aware chunker: Chunk frozen dataclass + normalize_hebrew (NFC + niqqud strip + whitespace collapse) + chunk_hebrew (paragraph + sentence split + English abbreviation re-glue + greedy pack to settings.rag_chunk_target_chars=1500 + overlap carry of settings.rag_chunk_overlap_chars=200); gershayim ״ + geresh ׳ NEVER sentence terminators (Pitfall 2 regression-tested); pathological >target single token emits as sole-unit chunk (Pitfall 8 / DoS T-04-02-01); license/dep-creep guard via test_chunk_hebrew_pure_stdlib source introspection (T-04-02-02); 17 tests / full backend suite 234 pass / 6 skip; ruff + mypy strict clean) |
 | RAG-04 | Phase 4: Hebrew RAG Knowledge Base | Partial (04-01 ChunkRef cross-phase contract via receptra.rag.types re-export + RagInitError/IngestRejected typed exception scaffold; full delivery in 04-04 retriever) |
 | RAG-05 | Phase 4: Hebrew RAG Knowledge Base | Pending |
 | RAG-06 | Phase 4: Hebrew RAG Knowledge Base | Pending |
