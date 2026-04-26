@@ -43,7 +43,7 @@ def test_get_async_client_uses_settings_defaults() -> None:
 
 def test_get_async_client_accepts_override() -> None:
     """Override host + timeout — both should be accepted."""
-    c = get_async_client(host="http://localhost:99999", timeout_s=5.0)
+    c = get_async_client(host="http://localhost:11434", timeout_s=5.0)
     assert c is not None
 
 
@@ -85,8 +85,10 @@ def test_extract_models_empty_when_unknown_shape() -> None:
 
 def test_extract_models_handles_listresponse_with_multiple_models() -> None:
     """List with multiple models returns them all in order."""
-    fake_a = MagicMock(); fake_a.model = "dictalm3:latest"
-    fake_b = MagicMock(); fake_b.model = "qwen2.5:7b"
+    fake_a = MagicMock()
+    fake_a.model = "dictalm3:latest"
+    fake_b = MagicMock()
+    fake_b.model = "qwen2.5:7b"
     resp = MagicMock(spec=["models"])
     resp.models = [fake_a, fake_b]
     assert _extract_models(resp) == ["dictalm3:latest", "qwen2.5:7b"]
@@ -193,7 +195,7 @@ def _mock_chat_response(content: str) -> Any:
 
 @pytest.mark.asyncio
 async def test_retry_appends_strict_suffix_to_system_message() -> None:
-    """Strict suffix glued to system msg, user/assistant turns untouched, stream=False, format=json."""
+    """Strict suffix glued to system msg; turns untouched; stream=False, format=json."""
     captured: dict[str, Any] = {}
 
     async def fake_chat(**kwargs: Any) -> Any:
@@ -237,7 +239,9 @@ async def test_retry_does_not_mutate_input_messages() -> None:
     """Suffix-mutation must not alter the caller's base_messages list (defensive copy)."""
 
     async def fake_chat(**_: Any) -> Any:
-        return _mock_chat_response('{"suggestions":[{"text":"x","confidence":0.1,"citation_ids":[]}]}')
+        return _mock_chat_response(
+            '{"suggestions":[{"text":"x","confidence":0.1,"citation_ids":[]}]}'
+        )
 
     client = MagicMock()
     client.chat = fake_chat
@@ -335,13 +339,13 @@ async def test_retry_handles_dict_response_shape() -> None:
 
 def test_custom_exceptions_inherit_from_exception() -> None:
     """Both errors are plain Exception subclasses (NOT pydantic.BaseModel)."""
+    from pydantic import BaseModel
+
     assert issubclass(OllamaModelMissingError, Exception)
     assert issubclass(OllamaUnreachableError, Exception)
     # Negative: must not be a pydantic model
-    from pydantic import BaseModel as _BM
-
-    assert not issubclass(OllamaModelMissingError, _BM)
-    assert not issubclass(OllamaUnreachableError, _BM)
+    assert not issubclass(OllamaModelMissingError, BaseModel)
+    assert not issubclass(OllamaUnreachableError, BaseModel)
 
 
 def test_custom_exceptions_carry_message() -> None:
@@ -362,19 +366,33 @@ def test_client_module_does_not_import_receptra_stt() -> None:
     imports ``receptra.stt.*``) for the Whisper/VAD stub patching. Therefore we
     must compare the DELTA introduced by importing ``receptra.llm.client`` —
     not the absolute set — to detect a regression.
+
+    To avoid breaking other tests that compare class identity across the
+    ``receptra.llm`` package boundary (e.g. ``test_package_reexports_public_surface``
+    in ``test_schema.py``), we save and restore the original ``receptra.llm.*``
+    entries instead of permanently dropping them.
     """
-    # Drop the LLM client cache so the import below actually re-executes.
+    # Save and drop the LLM cache so the import below actually re-executes.
+    saved_llm: dict[str, Any] = {}
     for k in list(sys.modules):
         if k.startswith("receptra.llm"):
-            del sys.modules[k]
+            saved_llm[k] = sys.modules.pop(k)
+    try:
+        stt_before = {k for k in sys.modules if k.startswith("receptra.stt")}
 
-    stt_before = {k for k in sys.modules if k.startswith("receptra.stt")}
+        import receptra.llm.client  # noqa: F401
 
-    import receptra.llm.client  # noqa: F401
-
-    stt_after = {k for k in sys.modules if k.startswith("receptra.stt")}
-    delta = stt_after - stt_before
-    assert delta == set(), (
-        f"`receptra.llm.client` must not introduce new receptra.stt imports; "
-        f"new imports detected: {sorted(delta)}"
-    )
+        stt_after = {k for k in sys.modules if k.startswith("receptra.stt")}
+        delta = stt_after - stt_before
+        assert delta == set(), (
+            f"`receptra.llm.client` must not introduce new receptra.stt imports; "
+            f"new imports detected: {sorted(delta)}"
+        )
+    finally:
+        # Restore original module identities so subsequent tests comparing
+        # `receptra.llm.X is X` (e.g. test_package_reexports_public_surface)
+        # see the same class objects they imported at module load time.
+        for k in list(sys.modules):
+            if k.startswith("receptra.llm"):
+                del sys.modules[k]
+        sys.modules.update(saved_llm)
