@@ -13,13 +13,16 @@ Mocking strategy (Plan 03-05 lock):
 """
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import httpx
 import pytest
 
 from receptra.config import settings as receptra_settings
 from receptra.rag.errors import RagInitError
+
+if TYPE_CHECKING:
+    from receptra.rag.embeddings import BgeM3Embedder
 
 
 class _FakeEmbedResponse:
@@ -70,8 +73,8 @@ class _FakeAsyncClient:
             raise self._embed_should_raise
         if not self._embed_responses:
             # Default: return a single zero vector of the input shape.
-            inp = kwargs.get("input")
-            n = 1 if isinstance(inp, str) else len(list(inp))
+            inp: Any = kwargs.get("input")
+            n = 1 if isinstance(inp, str) or inp is None else len(list(inp))
             return _FakeEmbedResponse([[0.0] * 1024 for _ in range(n)])
         vectors = self._embed_responses.pop(0)
         return _FakeEmbedResponse(vectors)
@@ -88,6 +91,17 @@ def fake_async_client_factory(monkeypatch: pytest.MonkeyPatch) -> type[_FakeAsyn
 
     monkeypatch.setattr(emb_mod, "AsyncClient", _FakeAsyncClient)
     return _FakeAsyncClient
+
+
+def _fake_client(embedder: BgeM3Embedder) -> _FakeAsyncClient:
+    """Cast embedder._client to the test fake.
+
+    Mypy strict treats ``BgeM3Embedder._client`` as ``ollama.AsyncClient``.
+    Tests inject ``_FakeAsyncClient`` via monkeypatch so the runtime type
+    is the fake; this cast is a runtime-asserted compile-time hint.
+    """
+    assert isinstance(embedder._client, _FakeAsyncClient)
+    return cast(_FakeAsyncClient, embedder._client)
 
 
 # ==========================================================================
@@ -118,8 +132,8 @@ class TestBgeM3Embedder:
         assert embedder is not None
         assert isinstance(embedder, BgeM3Embedder)
         assert hasattr(embedder, "_client")
-        assert isinstance(embedder._client, _FakeAsyncClient)
-        assert embedder._client.show_calls == ["bge-m3"]
+        client = _fake_client(embedder)
+        assert client.show_calls == ["bge-m3"]
 
     # --- Test 3 -----------------------------------------------------------
     @pytest.mark.asyncio
@@ -152,7 +166,8 @@ class TestBgeM3Embedder:
         from receptra.rag.embeddings import BgeM3Embedder
 
         embedder = await BgeM3Embedder.create_and_verify()
-        embedder._client.queue_embed_response([[0.1] * 1024])
+        client = _fake_client(embedder)
+        client.queue_embed_response([[0.1] * 1024])
 
         v = await embedder.embed_one("שלום")
         assert isinstance(v, list)
@@ -160,7 +175,7 @@ class TestBgeM3Embedder:
         assert all(isinstance(x, float) for x in v)
 
         # Verify call kwargs verbatim — guards T-04-03-01 (no embeddings() typo).
-        call = embedder._client.embed_calls[-1]
+        call = client.embed_calls[-1]
         assert call["model"] == "bge-m3"
         assert call["input"] == "שלום"
         assert call["keep_alive"] == "5m"
@@ -174,20 +189,21 @@ class TestBgeM3Embedder:
         from receptra.rag.embeddings import BgeM3Embedder
 
         embedder = await BgeM3Embedder.create_and_verify()
+        client = _fake_client(embedder)
         # Pre-queue three responses (sizes 2,2,1).
-        embedder._client.queue_embed_response([[1.0] * 1024, [2.0] * 1024])
-        embedder._client.queue_embed_response([[3.0] * 1024, [4.0] * 1024])
-        embedder._client.queue_embed_response([[5.0] * 1024])
+        client.queue_embed_response([[1.0] * 1024, [2.0] * 1024])
+        client.queue_embed_response([[3.0] * 1024, [4.0] * 1024])
+        client.queue_embed_response([[5.0] * 1024])
 
         out = await embedder.embed_batch(["a", "b", "c", "d", "e"], batch_size=2)
         assert len(out) == 5
         assert all(len(v) == 1024 for v in out)
-        assert len(embedder._client.embed_calls) == 3
+        assert len(client.embed_calls) == 3
 
         # Verify each batch call sent the right slice (input order preserved).
-        assert embedder._client.embed_calls[0]["input"] == ["a", "b"]
-        assert embedder._client.embed_calls[1]["input"] == ["c", "d"]
-        assert embedder._client.embed_calls[2]["input"] == ["e"]
+        assert client.embed_calls[0]["input"] == ["a", "b"]
+        assert client.embed_calls[1]["input"] == ["c", "d"]
+        assert client.embed_calls[2]["input"] == ["e"]
 
     # --- Test 6 -----------------------------------------------------------
     @pytest.mark.asyncio
@@ -202,15 +218,16 @@ class TestBgeM3Embedder:
         from receptra.rag.embeddings import BgeM3Embedder
 
         embedder = await BgeM3Embedder.create_and_verify()
+        client = _fake_client(embedder)
         # 7 inputs at batch_size=4 → 2 batches: 4 + 3
-        embedder._client.queue_embed_response([[0.0] * 1024 for _ in range(4)])
-        embedder._client.queue_embed_response([[0.0] * 1024 for _ in range(3)])
+        client.queue_embed_response([[0.0] * 1024 for _ in range(4)])
+        client.queue_embed_response([[0.0] * 1024 for _ in range(3)])
 
         out = await embedder.embed_batch(["a", "b", "c", "d", "e", "f", "g"])
         assert len(out) == 7
-        assert len(embedder._client.embed_calls) == 2
-        assert len(embedder._client.embed_calls[0]["input"]) == 4
-        assert len(embedder._client.embed_calls[1]["input"]) == 3
+        assert len(client.embed_calls) == 2
+        assert len(client.embed_calls[0]["input"]) == 4
+        assert len(client.embed_calls[1]["input"]) == 3
 
     # --- Test 7 -----------------------------------------------------------
     @pytest.mark.asyncio
@@ -221,14 +238,15 @@ class TestBgeM3Embedder:
         from receptra.rag.embeddings import BgeM3Embedder
 
         embedder = await BgeM3Embedder.create_and_verify()
+        client = _fake_client(embedder)
         # Sentinel: vector[0] encodes the input position.
-        embedder._client.queue_embed_response([
+        client.queue_embed_response([
             [float(i)] + [0.0] * 1023 for i in (0, 1)
         ])
-        embedder._client.queue_embed_response([
+        client.queue_embed_response([
             [float(i)] + [0.0] * 1023 for i in (2, 3)
         ])
-        embedder._client.queue_embed_response([
+        client.queue_embed_response([
             [float(i)] + [0.0] * 1023 for i in (4,)
         ])
 
@@ -246,7 +264,8 @@ class TestBgeM3Embedder:
         from receptra.rag.embeddings import BgeM3Embedder
 
         embedder = await BgeM3Embedder.create_and_verify()
-        embedder._client.make_embed_raise(httpx.ConnectError("ollama down"))
+        client = _fake_client(embedder)
+        client.make_embed_raise(httpx.ConnectError("ollama down"))
 
         with pytest.raises(httpx.ConnectError):
             await embedder.embed_one("שלום")
