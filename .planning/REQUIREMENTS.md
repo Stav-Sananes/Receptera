@@ -117,7 +117,7 @@
 | STT-04 | Phase 2: Hebrew Streaming STT | Complete (02-04) |
 | STT-05 | Phase 2: Hebrew Streaming STT | Complete (02-05) |
 | STT-06 | Phase 2: Hebrew Streaming STT | Complete (02-06) |
-| LLM-01 | Phase 3: Hebrew Suggestion LLM | Complete (03-01) |
+| LLM-01 | Phase 3: Hebrew Suggestion LLM | Complete (03-01 plumbing + 03-03 client layer) |
 | LLM-02 | Phase 3: Hebrew Suggestion LLM | Pending |
 | LLM-03 | Phase 3: Hebrew Suggestion LLM | Complete (03-02 — schema + prompt level lock) |
 | LLM-04 | Phase 3: Hebrew Suggestion LLM | Complete (03-02 — schema + prompt level lock) |

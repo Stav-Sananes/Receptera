@@ -72,7 +72,7 @@
 **Plans**: 6 plans
 - [x] 03-01-PLAN.md — Wave-0 dep lock (`ollama>=0.6.1`) + Settings extension + Ollama smoke + DictaLM ChatML grep gate (LLM-01)
 - [x] 03-02-PLAN.md — receptra.llm package skeleton: Suggestion + SuggestionResponse + SuggestionEvent discriminated union + Hebrew system prompt + 2 few-shot turns + DoS-bounded build_user_message (LLM-03, LLM-04)
-- [ ] 03-03-PLAN.md — Ollama AsyncClient factory + select_model probe (primary/fallback/typed-error) + bounded retry_with_strict_json helper (LLM-01)
+- [x] 03-03-PLAN.md — Ollama AsyncClient factory + select_model probe (primary/fallback/typed-error) + bounded retry_with_strict_json helper (LLM-01)
 - [ ] 03-04-PLAN.md — generate_suggestions AsyncGenerator: short-circuit + stream + parse + bounded retry + typed errors + LlmCallTrace + opt-in live grounding test (LLM-02, LLM-03, LLM-04)
 - [ ] 03-05-PLAN.md — LlmCallMetrics + log_llm_call loguru sink (PII default-redact) + llm_calls SQLite table + build_record_call hook (LLM-05)
 - [ ] 03-06-PLAN.md — scripts/eval_llm.py CLI harness (single-shot + eval-set) + 4 fixtures + STT-isolation regression test + docs/llm.md (LLM-06)
@@ -141,7 +141,7 @@
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete | 2026-04-24 |
 | 2. Hebrew Streaming STT | 6/6 | Complete | 2026-04-25 |
-| 3. Hebrew Suggestion LLM | 2/6 | In Progress | - |
+| 3. Hebrew Suggestion LLM | 3/6 | In Progress | - |
 | 4. Hebrew RAG Knowledge Base | 0/0 | Not started | - |
 | 5. Hot-Path Integration | 0/0 | Not started | - |
 | 6. Browser Sidebar Frontend | 0/0 | Not started | - |
