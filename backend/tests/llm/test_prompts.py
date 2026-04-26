@@ -20,7 +20,6 @@ from receptra.llm.prompts import (
 )
 from receptra.llm.schema import ChunkRef, SuggestionResponse
 
-
 # System prompt -------------------------------------------------------------
 
 
