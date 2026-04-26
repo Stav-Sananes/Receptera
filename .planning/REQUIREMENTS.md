@@ -35,7 +35,8 @@
 **: Suggestion prompt enforces grounding: model must only use retrieved context and must say "אין לי מספיק מידע" when context is insufficient
 - [x] **LLM-04
 **: LLM output is parsed into structured JSON with `suggestions[]` (text, confidence, citation_ids)
-- [ ] **LLM-05**: Time-to-first-token is instrumented and logged per request
+- [x] **LLM-05
+**: Time-to-first-token is instrumented and logged per request
 - [ ] **LLM-06**: Suggestion engine is testable via a CLI harness independent of the STT pipeline
 
 ### RAG (Knowledge Base Retrieval)
@@ -122,7 +123,7 @@
 | LLM-02 | Phase 3: Hebrew Suggestion LLM | Complete (03-04 — generate_suggestions AsyncGenerator orchestration) |
 | LLM-03 | Phase 3: Hebrew Suggestion LLM | Complete (03-02 schema/prompt-level lock + 03-04 engine-layer hard short-circuit + canonical refusal) |
 | LLM-04 | Phase 3: Hebrew Suggestion LLM | Complete (03-02 schema/prompt-level lock + 03-04 engine-layer SuggestionResponse parse + bounded retry + markdown-fence tolerance) |
-| LLM-05 | Phase 3: Hebrew Suggestion LLM | Pending |
+| LLM-05 | Phase 3: Hebrew Suggestion LLM | Complete (03-05 — receptra.llm.metrics LlmCallMetrics + log_llm_call loguru `event="llm.call"` JSON sink with PII redaction default-on + receptra.llm.audit idempotent llm_calls SQLite table + build_record_call hook composing both with independent contextlib.suppress isolation) |
 | LLM-06 | Phase 3: Hebrew Suggestion LLM | Pending |
 | RAG-01 | Phase 4: Hebrew RAG Knowledge Base | Pending |
 | RAG-02 | Phase 4: Hebrew RAG Knowledge Base | Pending |
