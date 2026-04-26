@@ -17,9 +17,9 @@ import unicodedata
 from pathlib import Path
 
 import pytest
-from receptra.rag.chunker import Chunk, chunk_hebrew, normalize_hebrew
 
 from receptra.config import settings
+from receptra.rag.chunker import Chunk, chunk_hebrew, normalize_hebrew
 
 # --------------------------------------------------------------------------
 # normalize_hebrew tests

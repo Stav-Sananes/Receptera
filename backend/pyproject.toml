@@ -66,6 +66,10 @@ select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
 # ״ U+05F4, geresh ׳ U+05F3); RUF001 flags ambiguous-glyph noise on a Hebrew
 # corpus. Same precedent as tests/llm/test_prompts.py.
 "tests/rag/test_chunker.py" = ["S101", "RUF001", "RUF002", "RUF003"]
+# Plan 04-02: chunker.py module docstring documents the gershayim / geresh
+# regression contract using the actual Unicode codepoints — the same
+# RUF002 (docstring ambiguous-glyph) noise applies as on the test file.
+"src/receptra/rag/chunker.py" = ["RUF001", "RUF002", "RUF003"]
 # Plan 04-01: ``IngestRejected`` is a contract-locked exception name aligned with
 # RESEARCH §REST API ``KbErrorResponse.code`` semantics ("ingest was rejected") —
 # the ``Error`` suffix N818 wants would invert past-tense semantics. ``RagInitError``
