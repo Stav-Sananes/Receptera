@@ -90,7 +90,7 @@
 **Skills**: `hebrew-nlp-toolkit` (chunking + tokenization), `hebrew-document-generator` (seed KB fixtures for eval).
 **Pitfalls addressed**: #8 (Hebrew chunking), #13 (PDF flakiness — scope limited to md/txt).
 **Plans**: 6 plans
-- [ ] 04-01-PLAN.md — Wave-0 dep lock (`chromadb-client>=1.5.8,<2`) + Settings extension (4 RAG knobs) + `receptra.rag` package scaffold (types/errors/conftest) + char/token-ratio spike + Ollama BGE-M3 smoke (RAG-01, RAG-04)
+- [x] 04-01-PLAN.md — Wave-0 dep lock (`chromadb-client>=1.5.8,<2`) + Settings extension (4 RAG knobs) + `receptra.rag` package scaffold (types/errors/conftest) + char/token-ratio spike + Ollama BGE-M3 smoke (RAG-01, RAG-04)
 - [ ] 04-02-PLAN.md — Hebrew chunker (sentence-aware + paragraph splits + gershayim/geresh defense + NFC + niqqud strip + 1500-char target / 200-char overlap) — pure stdlib (RAG-03)
 - [ ] 04-03-PLAN.md — BgeM3Embedder (1024-dim, batch=16, keep_alive=5m via Ollama AsyncClient) + ChromaDB HttpClient wrapper (cosine via metadata={hnsw:space:cosine}, get_or_create_collection idempotent) (RAG-01, RAG-02)
 - [ ] 04-04-PLAN.md — Ingest pipeline (.md/.txt allowlist + 1MB cap + UTF-8 strict + chunk → embed → delete-before-add → upsert with stable {sha[:8]:idx} ids) + retriever (query → embed → top-K → ChunkRef[] with similarity threshold) (RAG-03, RAG-04)

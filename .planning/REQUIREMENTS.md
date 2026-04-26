@@ -126,10 +126,10 @@
 | LLM-04 | Phase 3: Hebrew Suggestion LLM | Complete (03-02 schema/prompt-level lock + 03-04 engine-layer SuggestionResponse parse + bounded retry + markdown-fence tolerance) |
 | LLM-05 | Phase 3: Hebrew Suggestion LLM | Complete (03-05 — receptra.llm.metrics LlmCallMetrics + log_llm_call loguru `event="llm.call"` JSON sink with PII redaction default-on + receptra.llm.audit idempotent llm_calls SQLite table + build_record_call hook composing both with independent contextlib.suppress isolation) |
 | LLM-06 | Phase 3: Hebrew Suggestion LLM | Complete (03-06 — scripts/eval_llm.py argparse CLI harness with single-shot + eval-set modes, 8 flags, exit codes 0/1/2; subprocess STT-isolation regression test enumerating 7 forbidden module prefixes (receptra.stt + faster_whisper + silero_vad + torch + onnxruntime + ctranslate2 + av); 4 fixtures in fixtures/llm/; docs/llm.md 531 lines parallel to docs/stt.md) |
-| RAG-01 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| RAG-01 | Phase 4: Hebrew RAG Knowledge Base | Partial (04-01 plumbing — chromadb-client thin pin + 4 Settings + Ollama BGE-M3 triple-gated smoke; full delivery in 04-03 BgeM3Embedder) |
 | RAG-02 | Phase 4: Hebrew RAG Knowledge Base | Pending |
 | RAG-03 | Phase 4: Hebrew RAG Knowledge Base | Pending |
-| RAG-04 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| RAG-04 | Phase 4: Hebrew RAG Knowledge Base | Partial (04-01 ChunkRef cross-phase contract via receptra.rag.types re-export + RagInitError/IngestRejected typed exception scaffold; full delivery in 04-04 retriever) |
 | RAG-05 | Phase 4: Hebrew RAG Knowledge Base | Pending |
 | RAG-06 | Phase 4: Hebrew RAG Knowledge Base | Pending |
 | INT-01 | Phase 5: Hot-Path Integration | Pending |
