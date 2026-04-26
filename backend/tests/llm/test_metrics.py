@@ -28,31 +28,33 @@ from receptra.llm.metrics import (
 
 
 def _make_metrics(**overrides: Any) -> LlmCallMetrics:
-    base: dict[str, Any] = dict(
-        request_id="rid-1",
-        ts_utc="2026-04-25T10:00:00+00:00",
-        transcript="שלום",
-        transcript_hash="abcd1234abcd1234",
-        text_len_chars=4,
-        n_chunks=1,
-        model="dictalm3",
-        t_request_sent=100.0,
-        t_first_token=100.05,
-        t_done=100.5,
-        eval_count=12,
-        prompt_eval_count=40,
-        status="ok",
-        suggestions_count=1,
-        grounded=True,
-    )
+    base: dict[str, Any] = {
+        "request_id": "rid-1",
+        "ts_utc": "2026-04-25T10:00:00+00:00",
+        "transcript": "שלום",
+        "transcript_hash": "abcd1234abcd1234",
+        "text_len_chars": 4,
+        "n_chunks": 1,
+        "model": "dictalm3",
+        "t_request_sent": 100.0,
+        "t_first_token": 100.05,
+        "t_done": 100.5,
+        "eval_count": 12,
+        "prompt_eval_count": 40,
+        "status": "ok",
+        "suggestions_count": 1,
+        "grounded": True,
+    }
     base.update(overrides)
     return LlmCallMetrics(**base)
 
 
 def test_ttft_ms_happy() -> None:
-    m = _make_metrics(t_request_sent=10.0, t_first_token=10.05, t_done=10.6)
-    assert m.ttft_ms == 50
-    assert m.total_ms == 600
+    # Use values whose float arithmetic is exact (powers of 2 fractions) so
+    # int truncation does not race against IEEE-754 rounding.
+    m = _make_metrics(t_request_sent=10.0, t_first_token=10.0625, t_done=10.5)
+    assert m.ttft_ms == 62
+    assert m.total_ms == 500
 
 
 def test_ttft_ms_sentinel_when_no_token() -> None:
@@ -224,12 +226,13 @@ def test_log_llm_call_includes_ttft_and_total(
     monkeypatch.setattr(
         "receptra.llm.metrics.settings.llm_log_text_redaction_disabled", False
     )
-    m = _make_metrics(t_request_sent=10.0, t_first_token=10.05, t_done=10.6)
+    # Power-of-2 fractions give exact float arithmetic.
+    m = _make_metrics(t_request_sent=10.0, t_first_token=10.0625, t_done=10.5)
     log_llm_call(m)
     rendered = "\n".join(str(r) for r in loguru_sink)
-    # ttft_ms == 50, total_ms == 600
-    assert "50" in rendered
-    assert "600" in rendered
+    # ttft_ms == 62, total_ms == 500
+    assert "62" in rendered
+    assert "500" in rendered
 
 
 # --- build_record_call composition + isolation ----------------------------
