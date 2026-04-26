@@ -30,8 +30,10 @@
 - [x] **LLM-01
 **: Ollama runs locally with DictaLM 3.0 as the primary Hebrew model (Qwen 2.5 7B as fallback if DictaLM deployment is blocked)
 - [ ] **LLM-02**: Backend exposes an internal suggestion-engine interface that accepts (transcript, retrieved_context) and streams structured reply suggestions
-- [ ] **LLM-03**: Suggestion prompt enforces grounding: model must only use retrieved context and must say "אין לי מספיק מידע" when context is insufficient
-- [ ] **LLM-04**: LLM output is parsed into structured JSON with `suggestions[]` (text, confidence, citation_ids)
+- [x] **LLM-03
+**: Suggestion prompt enforces grounding: model must only use retrieved context and must say "אין לי מספיק מידע" when context is insufficient
+- [x] **LLM-04
+**: LLM output is parsed into structured JSON with `suggestions[]` (text, confidence, citation_ids)
 - [ ] **LLM-05**: Time-to-first-token is instrumented and logged per request
 - [ ] **LLM-06**: Suggestion engine is testable via a CLI harness independent of the STT pipeline
 
@@ -117,8 +119,8 @@
 | STT-06 | Phase 2: Hebrew Streaming STT | Complete (02-06) |
 | LLM-01 | Phase 3: Hebrew Suggestion LLM | Complete (03-01) |
 | LLM-02 | Phase 3: Hebrew Suggestion LLM | Pending |
-| LLM-03 | Phase 3: Hebrew Suggestion LLM | Pending |
-| LLM-04 | Phase 3: Hebrew Suggestion LLM | Pending |
+| LLM-03 | Phase 3: Hebrew Suggestion LLM | Complete (03-02 — schema + prompt level lock) |
+| LLM-04 | Phase 3: Hebrew Suggestion LLM | Complete (03-02 — schema + prompt level lock) |
 | LLM-05 | Phase 3: Hebrew Suggestion LLM | Pending |
 | LLM-06 | Phase 3: Hebrew Suggestion LLM | Pending |
 | RAG-01 | Phase 4: Hebrew RAG Knowledge Base | Pending |
