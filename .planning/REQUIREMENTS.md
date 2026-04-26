@@ -42,8 +42,8 @@
 
 ### RAG (Knowledge Base Retrieval)
 
-- [ ] **RAG-01**: BGE-M3 embeddings run via Ollama and produce vectors for Hebrew text
-- [ ] **RAG-02**: ChromaDB persists embeddings to a mounted volume and survives container restarts
+- [x] **RAG-01**: BGE-M3 embeddings run via Ollama and produce vectors for Hebrew text
+- [x] **RAG-02**: ChromaDB persists embeddings to a mounted volume and survives container restarts
 - [x] **RAG-03
 **: KB ingest pipeline accepts `.md` and `.txt` files, uses Hebrew-aware sentence chunking (via `hebrew-nlp-toolkit` skill), embeds, and stores
 - [ ] **RAG-04**: Retrieval endpoint returns top-K chunks with source metadata (filename, chunk offset) for a Hebrew query
@@ -127,8 +127,8 @@
 | LLM-04 | Phase 3: Hebrew Suggestion LLM | Complete (03-02 schema/prompt-level lock + 03-04 engine-layer SuggestionResponse parse + bounded retry + markdown-fence tolerance) |
 | LLM-05 | Phase 3: Hebrew Suggestion LLM | Complete (03-05 — receptra.llm.metrics LlmCallMetrics + log_llm_call loguru `event="llm.call"` JSON sink with PII redaction default-on + receptra.llm.audit idempotent llm_calls SQLite table + build_record_call hook composing both with independent contextlib.suppress isolation) |
 | LLM-06 | Phase 3: Hebrew Suggestion LLM | Complete (03-06 — scripts/eval_llm.py argparse CLI harness with single-shot + eval-set modes, 8 flags, exit codes 0/1/2; subprocess STT-isolation regression test enumerating 7 forbidden module prefixes (receptra.stt + faster_whisper + silero_vad + torch + onnxruntime + ctranslate2 + av); 4 fixtures in fixtures/llm/; docs/llm.md 531 lines parallel to docs/stt.md) |
-| RAG-01 | Phase 4: Hebrew RAG Knowledge Base | Partial (04-01 plumbing — chromadb-client thin pin + 4 Settings + Ollama BGE-M3 triple-gated smoke; full delivery in 04-03 BgeM3Embedder) |
-| RAG-02 | Phase 4: Hebrew RAG Knowledge Base | Pending |
+| RAG-01 | Phase 4: Hebrew RAG Knowledge Base | Complete (04-03 — receptra.rag.embeddings.BgeM3Embedder with DIM=1024 + MODEL='bge-m3' + _KEEP_ALIVE='5m' + create_and_verify async classmethod (fail-fast on model_missing) + embed_one (1024 floats via client.embed model='bge-m3', input, keep_alive='5m') + embed_batch (default batch_size from settings.rag_embed_batch_size=16); 8 mocked tests + 2 live BGE-M3 round-trip tests RECEPTRA_RAG_LIVE_TEST gated; T-04-03-01/02/07 mitigations regression-tested; full backend suite 250 pass / 8 skip; ruff + mypy strict clean) |
+| RAG-02 | Phase 4: Hebrew RAG Knowledge Base | Complete (04-03 — receptra.rag.vector_store with COLLECTION_NAME='receptra_kb' module constant + parse_chroma_host stdlib urlparse splitter + open_collection heartbeat-first idempotent open with cosine pin via legacy `metadata={"hnsw:space": "cosine"}` form (NOT configuration={...} per RESEARCH §Cluster 1); BGE-M3 L2-normalized → cosine = 1 - cos_sim; sync HttpClient + asyncio.to_thread at consumer (D-03 lock); inner except RagInitError reraise prevents double-wrap; 8 mocked tests; T-04-03-04/05/08 mitigations regression-tested; full backend suite 250 pass / 8 skip) |
 | RAG-03 | Phase 4: Hebrew RAG Knowledge Base | Complete (04-02 — receptra.rag.chunker pure-stdlib Hebrew sentence-aware chunker: Chunk frozen dataclass + normalize_hebrew (NFC + niqqud strip + whitespace collapse) + chunk_hebrew (paragraph + sentence split + English abbreviation re-glue + greedy pack to settings.rag_chunk_target_chars=1500 + overlap carry of settings.rag_chunk_overlap_chars=200); gershayim ״ + geresh ׳ NEVER sentence terminators (Pitfall 2 regression-tested); pathological >target single token emits as sole-unit chunk (Pitfall 8 / DoS T-04-02-01); license/dep-creep guard via test_chunk_hebrew_pure_stdlib source introspection (T-04-02-02); 17 tests / full backend suite 234 pass / 6 skip; ruff + mypy strict clean) |
 | RAG-04 | Phase 4: Hebrew RAG Knowledge Base | Partial (04-01 ChunkRef cross-phase contract via receptra.rag.types re-export + RagInitError/IngestRejected typed exception scaffold; full delivery in 04-04 retriever) |
 | RAG-05 | Phase 4: Hebrew RAG Knowledge Base | Pending |

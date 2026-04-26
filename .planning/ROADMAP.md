@@ -92,7 +92,7 @@
 **Plans**: 6 plans
 - [x] 04-01-PLAN.md — Wave-0 dep lock (`chromadb-client>=1.5.8,<2`) + Settings extension (4 RAG knobs) + `receptra.rag` package scaffold (types/errors/conftest) + char/token-ratio spike + Ollama BGE-M3 smoke (RAG-01, RAG-04)
 - [x] 04-02-PLAN.md — Hebrew chunker (sentence-aware + paragraph splits + gershayim/geresh defense + NFC + niqqud strip + 1500-char target / 200-char overlap) — pure stdlib (RAG-03)
-- [ ] 04-03-PLAN.md — BgeM3Embedder (1024-dim, batch=16, keep_alive=5m via Ollama AsyncClient) + ChromaDB HttpClient wrapper (cosine via metadata={hnsw:space:cosine}, get_or_create_collection idempotent) (RAG-01, RAG-02)
+- [x] 04-03-PLAN.md — BgeM3Embedder (1024-dim, batch=16, keep_alive=5m via Ollama AsyncClient) + ChromaDB HttpClient wrapper (cosine via metadata={hnsw:space:cosine}, get_or_create_collection idempotent) (RAG-01, RAG-02)
 - [ ] 04-04-PLAN.md — Ingest pipeline (.md/.txt allowlist + 1MB cap + UTF-8 strict + chunk → embed → delete-before-add → upsert with stable {sha[:8]:idx} ids) + retriever (query → embed → top-K → ChunkRef[] with similarity threshold) (RAG-03, RAG-04)
 - [ ] 04-05-PLAN.md — FastAPI router for /api/kb/* (6 routes: upload/ingest-text/documents/delete/query/health) + lifespan integration (BgeM3Embedder + open_collection on app.state, fail-fast) + chaos tests (Chroma-down + Ollama-down) (RAG-03, RAG-04, RAG-06)
 - [ ] 04-06-PLAN.md — 10 hand-crafted Hebrew KB fixtures (via hebrew-document-generator skill, NOT Webiks) + 10 adversarial questions JSONL + scripts/eval_rag.py CLI harness + recall@5 baseline + STT-isolation harness regression + docs/rag.md (RAG-05)
@@ -148,7 +148,7 @@
 | 1. Foundation | 6/6 | Complete | 2026-04-24 |
 | 2. Hebrew Streaming STT | 6/6 | Complete | 2026-04-25 |
 | 3. Hebrew Suggestion LLM | 6/6 | Complete | 2026-04-26 |
-| 4. Hebrew RAG Knowledge Base | 0/6 | In planning | - |
+| 4. Hebrew RAG Knowledge Base | 3/6 | In progress | - |
 | 5. Hot-Path Integration | 0/0 | Not started | - |
 | 6. Browser Sidebar Frontend | 0/0 | Not started | - |
 | 7. Polish & Demo | 0/0 | Not started | - |
