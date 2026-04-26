@@ -9,6 +9,13 @@ app module is imported in any fixture.
 Tests that need to assert on loader behavior (e.g., tests/stt/test_lifespan.py)
 opt into their own scoped fixture which overrides the stubs with
 introspectable variants.
+
+Plan 04-01: registers the ``live`` marker at the TOP-LEVEL conftest so it is
+visible to every subdirectory under ``--strict-markers`` regardless of which
+test path is collected. (Plan 03-01 originally registered it in
+``tests/llm/conftest.py``; that registration is removed to avoid duplicate
+addinivalue_line entries.) Per-package live-test gates (LLM vs RAG) keep
+their separate ``RECEPTRA_*_LIVE_TEST`` env vars.
 """
 
 from __future__ import annotations
@@ -20,6 +27,15 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Register the ``live`` marker once for both LLM (Plan 03-01) and RAG (Plan 04-01)."""
+    config.addinivalue_line(
+        "markers",
+        "live: opt-in test against a live host service (Ollama, ChromaDB). "
+        "Set RECEPTRA_LLM_LIVE_TEST=1 (LLM) or RECEPTRA_RAG_LIVE_TEST=1 (RAG).",
+    )
 
 
 class _InfoStub:
