@@ -16,6 +16,8 @@ from typing import Any
 import pytest
 from loguru import logger
 
+from receptra.config import settings as receptra_settings
+from receptra.llm import metrics as metrics_module
 from receptra.llm.engine import LlmCallTrace
 from receptra.llm.metrics import (
     LlmCallMetrics,
@@ -186,8 +188,11 @@ def test_log_llm_call_redacts_transcript_by_default(
     loguru_sink: list[Any],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # Module-reference monkeypatch (two-arg form) — Plan 03-04 pattern: avoids
+    # AttributeError under full-suite ordering when sibling tests mutate
+    # sys.modules (test_client.py STT-isolation save+restore).
     monkeypatch.setattr(
-        "receptra.llm.metrics.settings.llm_log_text_redaction_disabled", False
+        receptra_settings, "llm_log_text_redaction_disabled", False
     )
     m = _make_metrics(transcript="שלום עולם")
     log_llm_call(m)
@@ -204,7 +209,7 @@ def test_log_llm_call_includes_transcript_when_redaction_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "receptra.llm.metrics.settings.llm_log_text_redaction_disabled", True
+        receptra_settings, "llm_log_text_redaction_disabled", True
     )
     m = _make_metrics(transcript="שלום עולם")
     log_llm_call(m)
@@ -224,7 +229,7 @@ def test_log_llm_call_includes_ttft_and_total(
     loguru_sink: list[Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "receptra.llm.metrics.settings.llm_log_text_redaction_disabled", False
+        receptra_settings, "llm_log_text_redaction_disabled", False
     )
     # Power-of-2 fractions give exact float arithmetic.
     m = _make_metrics(t_request_sent=10.0, t_first_token=10.0625, t_done=10.5)
@@ -245,12 +250,9 @@ def test_build_record_call_invokes_log_and_insert(
     log_calls: list[Any] = []
     insert_calls: list[Any] = []
 
+    monkeypatch.setattr(metrics_module, "log_llm_call", lambda m: log_calls.append(m))
     monkeypatch.setattr(
-        "receptra.llm.metrics.log_llm_call", lambda m: log_calls.append(m)
-    )
-    monkeypatch.setattr(
-        "receptra.llm.metrics.insert_llm_call",
-        lambda p, m: insert_calls.append((p, m)),
+        metrics_module, "insert_llm_call", lambda p, m: insert_calls.append((p, m))
     )
 
     record = build_record_call(audit_path)
@@ -282,10 +284,9 @@ def test_build_record_call_swallows_log_failure_but_still_inserts(
     def raising_log(_m: Any) -> None:
         raise RuntimeError("loguru sink failed")
 
-    monkeypatch.setattr("receptra.llm.metrics.log_llm_call", raising_log)
+    monkeypatch.setattr(metrics_module, "log_llm_call", raising_log)
     monkeypatch.setattr(
-        "receptra.llm.metrics.insert_llm_call",
-        lambda p, m: insert_calls.append((p, m)),
+        metrics_module, "insert_llm_call", lambda p, m: insert_calls.append((p, m))
     )
 
     record = build_record_call(audit_path)
@@ -316,10 +317,8 @@ def test_build_record_call_swallows_insert_failure(
     def raising_insert(_p: Any, _m: Any) -> None:
         raise RuntimeError("disk full")
 
-    monkeypatch.setattr(
-        "receptra.llm.metrics.log_llm_call", lambda m: log_calls.append(m)
-    )
-    monkeypatch.setattr("receptra.llm.metrics.insert_llm_call", raising_insert)
+    monkeypatch.setattr(metrics_module, "log_llm_call", lambda m: log_calls.append(m))
+    monkeypatch.setattr(metrics_module, "insert_llm_call", raising_insert)
 
     record = build_record_call(audit_path)
     trace = LlmCallTrace(
