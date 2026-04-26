@@ -73,5 +73,32 @@ class Settings(BaseSettings):
     # documented in docs/llm.md.
     llm_log_text_redaction_disabled: bool = False
 
+    # --- Phase 4 RAG (Hebrew Knowledge Base) — defaults locked by 04-RESEARCH
+    # §Cluster 5 + §Hebrew Chunking Strategy + §BGE-M3 Pattern ---
+
+    # Cosine-similarity floor for retrieved chunks. Below this, the chunk is
+    # filtered before ChunkRef[] is returned. RESEARCH §Cluster 5: 0.35 is the
+    # working default carried over from EXTERNAL-PLAN-REFERENCE.md; the
+    # recall@5 eval (Plan 04-06 — RAG-05) is the authoritative tuning lever.
+    rag_min_similarity: float = 0.35
+
+    # Greedy-chunker target window. RESEARCH §Hebrew Chunking Strategy:
+    # 1500 chars ≈ 500 BGE-M3 tokens via the 1-token≈3-Hebrew-char heuristic;
+    # validated by Wave-0 spike (scripts/spike_chunk_token_ratio.py) and
+    # locked into 04-01-SPIKE-RESULTS.md. Plan 04-06 retunes if recall@5 demands.
+    rag_chunk_target_chars: int = 1500
+
+    # Greedy-chunker overlap window. ~200 chars ≈ 65 BGE-M3 tokens (~12% of
+    # chunk) — the textbook RAG overlap value per RESEARCH §Hebrew Chunking
+    # Strategy citing pinecone.io/learn/chunking-strategies +
+    # weaviate.io/blog/chunking-strategies-for-rag.
+    rag_chunk_overlap_chars: int = 200
+
+    # BGE-M3 ingest batch size. RESEARCH §BGE-M3 Pattern: 16 keeps memory
+    # footprint stable on 16 GB Mac (24 KB input + 64 KB output per batch);
+    # 32 risks Ollama context-overflow on docs with ≥32 chunks all >2k tokens.
+    # Adjust via RECEPTRA_RAG_EMBED_BATCH_SIZE only if Wave-0 spike pushes higher.
+    rag_embed_batch_size: int = 16
+
 
 settings = Settings()

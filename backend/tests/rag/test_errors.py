@@ -12,7 +12,7 @@ from receptra.rag.errors import IngestRejected, RagInitError
 
 def test_rag_init_error_codes() -> None:
     for code in ("ollama_unreachable", "model_missing", "chroma_unreachable"):
-        err = RagInitError(code=code, detail="x")  # type: ignore[arg-type]
+        err = RagInitError(code=code, detail="x")
         assert err.code == code
         assert err.detail == "x"
         # __str__ collapses to "code: detail" so loguru/print yield a useful line.
@@ -26,7 +26,7 @@ def test_ingest_rejected_codes() -> None:
         "encoding_error",
         "empty_after_chunking",
     ):
-        err = IngestRejected(code=code, detail="x")  # type: ignore[arg-type]
+        err = IngestRejected(code=code, detail="x")
         assert err.code == code
         assert err.detail == "x"
         assert str(err) == f"{code}: x"

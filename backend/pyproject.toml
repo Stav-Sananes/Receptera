@@ -19,6 +19,11 @@ dependencies = [
     "loguru>=0.7.3,<1",
     # Phase 3 (Hebrew Suggestion LLM) additions:
     "ollama>=0.6.1,<1",
+    # Phase 4 (Hebrew RAG Knowledge Base) additions:
+    # Thin client only — full `chromadb` package pulls onnxruntime/pulsar-client/
+    # tokenizers (RESEARCH §Cluster 1 anti-pattern). Server runs in its own
+    # container per docker-compose.yml. Both publish identical 1.5.8.
+    "chromadb-client>=1.5.8,<2",
 ]
 
 [dependency-groups]
@@ -57,6 +62,11 @@ select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
 "src/receptra/llm/prompts.py" = ["E501", "RUF001"]
 # Hebrew test strings are intentional; RUF001 ambiguous-glyph warnings are noise.
 "tests/llm/test_prompts.py" = ["S101", "RUF001"]
+# Plan 04-01: ``IngestRejected`` is a contract-locked exception name aligned with
+# RESEARCH §REST API ``KbErrorResponse.code`` semantics ("ingest was rejected") —
+# the ``Error`` suffix N818 wants would invert past-tense semantics. ``RagInitError``
+# already follows the convention; only ``IngestRejected`` triggers N818.
+"src/receptra/rag/errors.py" = ["N818"]
 
 [tool.mypy]
 strict = true

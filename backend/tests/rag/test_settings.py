@@ -63,7 +63,9 @@ def test_chromadb_client_pinned() -> None:
     assert ">=1.5.8" in spec, f"chromadb-client spec missing >=1.5.8: {spec!r}"
     # Belt-and-suspenders: do NOT pin the full chromadb package (would pull
     # onnxruntime/pulsar-client/tokenizers per RESEARCH §Cluster 1 anti-pattern).
-    bare_chromadb = [d for d in deps if d.startswith("chromadb") and not d.startswith("chromadb-client")]
+    bare_chromadb = [
+        d for d in deps if d.startswith("chromadb") and not d.startswith("chromadb-client")
+    ]
     assert not bare_chromadb, f"full chromadb package must NOT be pinned: {bare_chromadb}"
 
 
