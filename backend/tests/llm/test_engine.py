@@ -15,6 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
+from receptra.llm import engine as engine_module
 from receptra.llm.engine import (
     _CANONICAL_REFUSAL,
     LlmCallTrace,
@@ -28,7 +29,6 @@ from receptra.llm.schema import (
     SuggestionEvent,
     TokenEvent,
 )
-
 
 # --- Helpers ---------------------------------------------------------------
 
@@ -62,9 +62,9 @@ async def _drain(gen: Any) -> list[SuggestionEvent]:
 def _patch_client_factory_and_select(
     monkeypatch: pytest.MonkeyPatch, client: Any, chosen: str = "dictalm3"
 ) -> None:
-    monkeypatch.setattr("receptra.llm.engine.get_async_client", lambda: client)
+    monkeypatch.setattr(engine_module, "get_async_client", lambda: client)
     monkeypatch.setattr(
-        "receptra.llm.engine.select_model", AsyncMock(return_value=chosen)
+        engine_module, "select_model", AsyncMock(return_value=chosen)
     )
 
 
@@ -94,7 +94,7 @@ async def test_short_circuit_on_empty_context(monkeypatch: pytest.MonkeyPatch) -
     traces: list[LlmCallTrace] = []
     chat_mock = AsyncMock()
     monkeypatch.setattr(
-        "receptra.llm.engine.get_async_client",
+        engine_module, "get_async_client",
         lambda: MagicMock(chat=chat_mock),
     )
 
@@ -117,7 +117,7 @@ async def test_short_circuit_on_whitespace_transcript(
 ) -> None:
     chat_mock = AsyncMock()
     monkeypatch.setattr(
-        "receptra.llm.engine.get_async_client",
+        engine_module, "get_async_client",
         lambda: MagicMock(chat=chat_mock),
     )
 
@@ -223,7 +223,7 @@ async def test_parse_retry_recovers(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_client_factory_and_select(monkeypatch, client)
 
     monkeypatch.setattr(
-        "receptra.llm.engine.retry_with_strict_json",
+        engine_module, "retry_with_strict_json",
         AsyncMock(
             return_value='{"suggestions":[{"text":"ok","confidence":0.5,"citation_ids":[]}]}'
         ),
@@ -252,7 +252,7 @@ async def test_parse_retry_exhausted_yields_error_then_refusal(
     client = _mock_async_client(bad_chunks)
     _patch_client_factory_and_select(monkeypatch, client)
     monkeypatch.setattr(
-        "receptra.llm.engine.retry_with_strict_json",
+        engine_module, "retry_with_strict_json",
         AsyncMock(return_value=None),
     )
 
@@ -281,7 +281,7 @@ async def test_parse_retry_returns_garbage(monkeypatch: pytest.MonkeyPatch) -> N
     client = _mock_async_client(bad_chunks)
     _patch_client_factory_and_select(monkeypatch, client)
     monkeypatch.setattr(
-        "receptra.llm.engine.retry_with_strict_json",
+        engine_module, "retry_with_strict_json",
         AsyncMock(return_value="still not json"),
     )
 
@@ -310,9 +310,9 @@ async def test_select_model_unreachable_yields_error_only(
 ) -> None:
     from receptra.llm.client import OllamaUnreachableError
 
-    monkeypatch.setattr("receptra.llm.engine.get_async_client", lambda: MagicMock())
+    monkeypatch.setattr(engine_module, "get_async_client", lambda: MagicMock())
     monkeypatch.setattr(
-        "receptra.llm.engine.select_model",
+        engine_module, "select_model",
         AsyncMock(side_effect=OllamaUnreachableError("connection refused")),
     )
 
@@ -335,9 +335,9 @@ async def test_select_model_missing_yields_unreachable_with_model_missing_detail
 ) -> None:
     from receptra.llm.client import OllamaModelMissingError
 
-    monkeypatch.setattr("receptra.llm.engine.get_async_client", lambda: MagicMock())
+    monkeypatch.setattr(engine_module, "get_async_client", lambda: MagicMock())
     monkeypatch.setattr(
-        "receptra.llm.engine.select_model",
+        engine_module, "select_model",
         AsyncMock(
             side_effect=OllamaModelMissingError(
                 "Neither dictalm3 nor qwen2.5:7b"
@@ -411,7 +411,7 @@ async def test_connect_error_mid_stream(monkeypatch: pytest.MonkeyPatch) -> None
 async def test_dos_oversize_transcript_yields_no_context_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("receptra.llm.engine.get_async_client", lambda: MagicMock())
+    monkeypatch.setattr(engine_module, "get_async_client", lambda: MagicMock())
     traces: list[LlmCallTrace] = []
     events = await _drain(
         generate_suggestions(
@@ -442,7 +442,7 @@ async def test_ttft_measured_within_bounds(monkeypatch: pytest.MonkeyPatch) -> N
     _patch_client_factory_and_select(monkeypatch, client)
 
     monkeypatch.setattr(
-        "receptra.llm.engine.retry_with_strict_json",
+        engine_module, "retry_with_strict_json",
         AsyncMock(
             return_value='{"suggestions":[{"text":"x","confidence":0.5,"citation_ids":[]}]}'
         ),
@@ -488,9 +488,9 @@ async def test_no_event_loop_blocking(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         return c
 
-    monkeypatch.setattr("receptra.llm.engine.get_async_client", make_client)
+    monkeypatch.setattr(engine_module, "get_async_client", make_client)
     monkeypatch.setattr(
-        "receptra.llm.engine.select_model", AsyncMock(return_value="dictalm3")
+        engine_module, "select_model", AsyncMock(return_value="dictalm3")
     )
 
     async def one_call() -> list[SuggestionEvent]:
