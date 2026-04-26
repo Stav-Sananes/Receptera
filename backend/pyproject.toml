@@ -62,6 +62,10 @@ select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
 "src/receptra/llm/prompts.py" = ["E501", "RUF001"]
 # Hebrew test strings are intentional; RUF001 ambiguous-glyph warnings are noise.
 "tests/llm/test_prompts.py" = ["S101", "RUF001"]
+# Plan 04-02: Hebrew chunker test fixtures use real Hebrew literals (gershayim
+# ״ U+05F4, geresh ׳ U+05F3); RUF001 flags ambiguous-glyph noise on a Hebrew
+# corpus. Same precedent as tests/llm/test_prompts.py.
+"tests/rag/test_chunker.py" = ["S101", "RUF001", "RUF002", "RUF003"]
 # Plan 04-01: ``IngestRejected`` is a contract-locked exception name aligned with
 # RESEARCH §REST API ``KbErrorResponse.code`` semantics ("ingest was rejected") —
 # the ``Error`` suffix N818 wants would invert past-tense semantics. ``RagInitError``
