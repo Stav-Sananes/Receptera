@@ -47,6 +47,7 @@ from loguru import logger
 from numpy.typing import NDArray
 
 from receptra.config import settings
+from receptra.pipeline.audit import init_pipeline_db
 from receptra.pipeline.hot_path import SuggestFn, make_suggest_fn
 from receptra.pipeline.intent import detect_intent_and_send
 from receptra.stt.audit import init_audit_db, insert_stt_utterance
@@ -111,6 +112,14 @@ async def websocket_stt_endpoint(ws: WebSocket) -> None:
         init_audit_db(settings.audit_db_path)
     except Exception as e:  # pragma: no cover — defensive
         logger.bind(event="stt.audit.init_failed").error(
+            {"path": settings.audit_db_path, "err": str(e)}
+        )
+    # INT-05 — pipeline_runs table for hot_path audit. Same SQLite file,
+    # idempotent CREATE TABLE IF NOT EXISTS.
+    try:
+        init_pipeline_db(settings.audit_db_path)
+    except Exception as e:  # pragma: no cover — defensive
+        logger.bind(event="pipeline.audit.init_failed").error(
             {"path": settings.audit_db_path, "err": str(e)}
         )
 
@@ -348,8 +357,10 @@ async def run_utterance_loop(
 
             # Reset utterance state — the underlying VADIterator carries
             # silero's segmentation state across utterances on the same
-            # connection (multi-utterance streaming is a Phase 7
-            # concern; v1 closes the WS after one final).
+            # connection. The loop continues to receive frames; subsequent
+            # VAD-start events trigger a fresh utterance with a new id.
+            # Verified by tests/stt/test_ws_pcm_roundtrip.py::
+            # test_multi_utterance_emits_multiple_finals.
             speech_buffer = []
             in_speech = False
             t_speech_start_ms = 0

@@ -351,3 +351,48 @@ def test_no_event_loop_blocking(real_vad_slow_whisper_app: FastAPI) -> None:
         f"two concurrent WS took {total_wall:.2f}s — event loop likely blocked "
         f"on synchronous transcribe (Pitfall #5)"
     )
+
+
+# ---------------------------------------------------------------------------
+# Test 6 — Multi-utterance: WS stays open and emits multiple finals (v1.1+)
+# ---------------------------------------------------------------------------
+
+
+def test_multi_utterance_emits_multiple_finals(real_vad_canned_whisper_app: FastAPI) -> None:
+    """One WS connection drives two complete VAD-gated utterances.
+
+    Real calls have many short utterances separated by silence. The WS
+    must stay open across the full conversation and emit a fresh ``final``
+    for every utterance — never close after the first one.
+    """
+    app = real_vad_canned_whisper_app
+    finals: list[dict[str, Any]] = []
+    with TestClient(app) as client, client.websocket_connect("/ws/stt") as ws:
+        ready = ws.receive_json()
+        assert ready["type"] == "ready"
+
+        for utterance_idx in range(2):
+            # Voiced burst → silence trailer for each utterance.
+            for _ in range(5):
+                ws.send_bytes(_silence_frame())
+            for i in range(60):
+                phase = (i * FRAME_SAMPLES) / SAMPLE_RATE_HZ + utterance_idx * 100
+                ws.send_bytes(_voiced_frame(phase=phase))
+            for _ in range(40):
+                ws.send_bytes(_silence_frame())
+
+            # Drain events until this utterance's final arrives.
+            for _ in range(300):
+                evt = ws.receive_json()
+                if evt["type"] == "final":
+                    finals.append(evt)
+                    break
+
+    assert len(finals) == 2, f"expected 2 finals on one WS; got {len(finals)}: {finals}"
+    # Each final must have its own non-overlapping speech window.
+    assert finals[0]["t_speech_end_ms"] <= finals[1]["t_speech_start_ms"], (
+        f"utterance 2 must start after utterance 1 ends: {finals}"
+    )
+    # Both must have Hebrew text from the canned stub.
+    for i, final in enumerate(finals):
+        assert "שלום" in final["text"], f"utterance {i} text: {final['text']}"
