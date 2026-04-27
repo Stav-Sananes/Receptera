@@ -18,6 +18,7 @@ import { generateSummary } from './api/summary'
 import { HistoryPanel } from './components/HistoryPanel'
 import { KbPanel } from './components/KbPanel'
 import { KbSearchBox } from './components/KbSearchBox'
+import { StatsPanel } from './components/StatsPanel'
 import { StatusBar } from './components/StatusBar'
 import { SummaryPanel } from './components/SummaryPanel'
 import { SuggestionPanel } from './components/SuggestionPanel'
@@ -88,6 +89,18 @@ export default function App() {
     }
   }, [ws.finals])
 
+  // Auto-end-call: when the agent disconnects (clicked Stop) AND we have
+  // finals AND haven't generated a summary yet, fire it automatically.
+  // Saves a click for every successful call. The summary still re-runs
+  // if the agent clicks the manual button afterwards.
+  useEffect(() => {
+    if (audio.isCapturing) return
+    if (ws.status === 'connected') return
+    if (ws.finals.length === 0) return
+    if (summary || summaryLoading) return
+    void handleEndCall()
+  }, [audio.isCapturing, ws.status, ws.finals.length, summary, summaryLoading, handleEndCall])
+
   const handleCopySummary = useCallback(() => {
     if (!summary) return
     const text = [
@@ -138,9 +151,10 @@ export default function App() {
         </div>
       )}
 
-      {/* Manual KB search (agents look things up actively) */}
-      <div className="border-t border-gray-200 px-3 py-2">
+      {/* Manual KB search + operator stats */}
+      <div className="border-t border-gray-200 px-3 py-2 space-y-2">
         <KbSearchBox />
+        <StatsPanel />
       </div>
 
       {/* Past calls (localStorage-backed) */}
