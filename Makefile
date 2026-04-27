@@ -5,7 +5,8 @@ SHELL := /usr/bin/env bash
 .SHELLFLAGS := -euo pipefail -c
 
 .PHONY: help setup check-prereqs models models-whisper models-dictalm models-bge \
-        models-fallback up down logs test lint typecheck format licenses clean
+        models-fallback up down logs test lint typecheck format licenses clean \
+        eval-rag
 
 MODEL_DIR      ?= $(HOME)/.receptra/models
 DICTALM_QUANT  ?= Q4_K_M
@@ -34,6 +35,7 @@ help:
 	@echo "  make licenses          License allowlist check"
 	@echo ""
 	@echo "  make clean             Stop stack, remove build artifacts (keeps models)"
+	@echo "  make eval-rag          Run RAG recall@5 eval against TestClient (Phase 4)"
 	@echo ""
 	@echo "Overrides:"
 	@echo "  make models DICTALM_QUANT=Q5_K_M    # 32GB Macs — better quality"
@@ -124,3 +126,6 @@ clean:
 	cd backend && rm -rf .venv .pytest_cache .ruff_cache .mypy_cache dist
 	cd frontend && rm -rf node_modules dist .vite
 	@echo "NOTE: models in $(MODEL_DIR) preserved. Run 'rm -rf $(MODEL_DIR)' to reclaim disk."
+
+eval-rag:
+	@cd backend && uv run python ../scripts/eval_rag.py --full --testclient

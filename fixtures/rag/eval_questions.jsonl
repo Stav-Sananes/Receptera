@@ -1,0 +1,10 @@
+{"question": "מה שעות הפתיחה ביום שישי?", "gold_filename": "01_hours.md", "gold_chunk_match": "שישי"}
+{"question": "כמה זמן יש לי להחזיר מוצר שקניתי?", "gold_filename": "02_returns.md", "gold_chunk_match": "ימים"}
+{"question": "כמה עולה השירות הבסיסי שלכם?", "gold_filename": "03_pricing.md", "gold_chunk_match": "₪"}
+{"question": "איפה אתם נמצאים?", "gold_filename": "04_address.md", "gold_chunk_match": "רחוב"}
+{"question": "אם אני משאיר הודעה, מתי תחזרו אליי?", "gold_filename": "05_callback.md", "gold_chunk_match": "24"}
+{"question": "אפשר לשלם ב-Bit?", "gold_filename": "06_payment.md", "gold_chunk_match": "Bit"}
+{"question": "האם אתם פתוחים בראש השנה?", "gold_filename": "07_holidays.md", "gold_chunk_match": "ראש השנה"}
+{"question": "איך אני מגיש תלונה על שירות?", "gold_filename": "08_complaints.md", "gold_chunk_match": "תלונה"}
+{"question": "האם אתם מציעים שירות שיפוצים?", "gold_filename": null, "gold_chunk_match": null}
+{"question": "האם אתם פתוחים בשבת?", "gold_filename": null, "gold_chunk_match": null}
