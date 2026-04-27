@@ -58,3 +58,19 @@ export async function getKbHealth(): Promise<KbHealth> {
   const res = await fetch(`${BASE}/health`)
   return _unwrap<KbHealth>(res)
 }
+
+export interface KbSearchResult {
+  id: string
+  text: string
+  source: Record<string, string>
+}
+
+/** Manual KB search — Hebrew query → top-K chunks with similarity scores. */
+export async function searchKb(query: string, topK = 5): Promise<KbSearchResult[]> {
+  const res = await fetch(`${BASE}/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, top_k: topK }),
+  })
+  return _unwrap<KbSearchResult[]>(res)
+}

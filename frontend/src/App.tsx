@@ -17,6 +17,7 @@ import type { CallSummary } from './api/summary'
 import { generateSummary } from './api/summary'
 import { HistoryPanel } from './components/HistoryPanel'
 import { KbPanel } from './components/KbPanel'
+import { KbSearchBox } from './components/KbSearchBox'
 import { StatusBar } from './components/StatusBar'
 import { SummaryPanel } from './components/SummaryPanel'
 import { SuggestionPanel } from './components/SuggestionPanel'
@@ -136,6 +137,11 @@ export default function App() {
           />
         </div>
       )}
+
+      {/* Manual KB search (agents look things up actively) */}
+      <div className="border-t border-gray-200 px-3 py-2">
+        <KbSearchBox />
+      </div>
 
       {/* Past calls (localStorage-backed) */}
       {history.calls.length > 0 && (
