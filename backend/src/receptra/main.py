@@ -7,6 +7,7 @@ from fastapi import FastAPI, WebSocket
 from receptra.lifespan import lifespan
 from receptra.rag.routes import router as kb_router
 from receptra.stt.pipeline import websocket_stt_endpoint
+from receptra.summary.router import router as summary_router
 
 app = FastAPI(
     title="Receptra",
@@ -17,6 +18,9 @@ app = FastAPI(
 
 # RAG knowledge-base API (Plan 04-05 — RAG-03 + RAG-04 + RAG-06)
 app.include_router(kb_router, prefix="/api/kb", tags=["kb"])
+
+# Post-call Hebrew summary (Feature 3)
+app.include_router(summary_router)
 
 
 @app.get("/healthz")

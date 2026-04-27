@@ -13,6 +13,7 @@ import type { FinalTranscript } from '../types/ws'
 interface Props {
   partialText: string
   finals: FinalTranscript[]
+  onEndCall?: () => void
 }
 
 function LatencyBadge({ ms }: { ms: number }) {
@@ -24,7 +25,7 @@ function LatencyBadge({ ms }: { ms: number }) {
   )
 }
 
-export function TranscriptPanel({ partialText, finals }: Props) {
+export function TranscriptPanel({ partialText, finals, onEndCall }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -61,6 +62,16 @@ export function TranscriptPanel({ partialText, finals }: Props) {
         )}
         <div ref={bottomRef} />
       </div>
+      {finals.length > 0 && onEndCall && (
+        <div className="border-t border-gray-100 px-4 py-2">
+          <button
+            onClick={onEndCall}
+            className="mt-2 w-full rounded bg-gray-700 px-3 py-1.5 text-xs text-white hover:bg-gray-900"
+          >
+            סיים שיחה וצור סיכום
+          </button>
+        </div>
+      )}
     </section>
   )
 }

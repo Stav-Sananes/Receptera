@@ -1,4 +1,5 @@
 """Tests for POST /api/summary (Feature 3)."""
+
 from __future__ import annotations
 
 import json
@@ -16,11 +17,13 @@ def _make_ollama_response(content: str) -> MagicMock:
     return resp
 
 
-SAMPLE_SUMMARY_JSON = json.dumps({
-    "topic": "שאילתת שעות פתיחה",
-    "key_points": ["הלקוח שאל על שעות ביום שישי"],
-    "action_items": [],
-})
+SAMPLE_SUMMARY_JSON = json.dumps(
+    {
+        "topic": "שאילתת שעות פתיחה",
+        "key_points": ["הלקוח שאל על שעות ביום שישי"],
+        "action_items": [],
+    }
+)
 
 
 @pytest.fixture
@@ -41,7 +44,7 @@ def test_summary_returns_structured_response(summary_client: TestClient) -> None
 
     with (
         patch("receptra.summary.router.get_async_client", return_value=mock_client),
-        patch("receptra.summary.router.select_model", return_value=AsyncMock(return_value="dictalm3")),
+        patch("receptra.summary.router.select_model", new=AsyncMock(return_value="dictalm3")),
     ):
         r = summary_client.post(
             "/api/summary",
@@ -62,6 +65,7 @@ def test_summary_rejects_empty_transcript(summary_client: TestClient) -> None:
 
 def test_build_summary_messages_truncates_long_transcript() -> None:
     from receptra.summary.prompts import MAX_SUMMARY_TRANSCRIPT_CHARS, build_summary_messages
+
     long_transcript = "x" * (MAX_SUMMARY_TRANSCRIPT_CHARS + 5000)
     messages = build_summary_messages(long_transcript)
     last_user = next(m["content"] for m in reversed(messages) if m["role"] == "user")
