@@ -20,7 +20,7 @@ class _FakeWs:
     def __init__(self) -> None:
         self.sent: list[dict[str, Any]] = []
 
-    async def send_json(self, data: dict[str, Any]) -> None:  # noqa: D401
+    async def send_json(self, data: dict[str, Any]) -> None:
         self.sent.append(data)
 
     async def send_bytes(self, data: bytes) -> None:

@@ -47,6 +47,7 @@ from loguru import logger
 from numpy.typing import NDArray
 
 from receptra.config import settings
+from receptra.pipeline.hot_path import SuggestFn, make_suggest_fn
 from receptra.stt.audit import init_audit_db, insert_stt_utterance
 from receptra.stt.engine import transcribe_hebrew
 from receptra.stt.events import FinalTranscript, PartialTranscript, SttError, SttReady
@@ -136,8 +137,14 @@ async def websocket_stt_endpoint(ws: WebSocket) -> None:
         text, _info = await asyncio.to_thread(transcribe_hebrew, whisper, buffer)
         return text
 
+    # Phase 5 INT-01: build per-connection suggest callback from app.state.
+    # Both embedder and chroma_collection may be None (INT-04 graceful degradation).
+    embedder = getattr(ws.app.state, "embedder", None)
+    chroma_collection = getattr(ws.app.state, "chroma_collection", None)
+    suggest = make_suggest_fn(ws, embedder, chroma_collection)
+
     try:
-        await run_utterance_loop(ws, vad, transcribe)
+        await run_utterance_loop(ws, vad, transcribe, suggest=suggest)
     except WebSocketDisconnect:
         logger.bind(event="stt.ws.disconnect").info({"msg": "client disconnected"})
     except Exception as e:  # pragma: no cover — defensive last-line catch
@@ -161,6 +168,8 @@ async def run_utterance_loop(
     ws: WebSocket,
     vad: StreamingVad,
     transcribe: TranscribeFn,
+    *,
+    suggest: SuggestFn | None = None,
 ) -> None:
     """Drive the VAD-gated incremental re-transcribe loop on one connection.
 
@@ -168,12 +177,17 @@ async def run_utterance_loop(
 
         on VAD start: reset speech_buffer, mark t_speech_start
         on audio frame in active speech: append; maybe emit partial
-        on VAD end: transcribe, emit final, reset
+        on VAD end: transcribe, emit final, [suggest], reset
 
     The function is split out from ``websocket_stt_endpoint`` so Plan
     02-06's metrics wrapper can call it with an instrumented
     ``transcribe`` callable that records per-call latency + writes an
     audit row, without touching the FastAPI route decorator.
+
+    Phase 5 INT-02: after emitting ``FinalTranscript``, ``suggest`` is
+    awaited (inline, not fire-and-forget) so the WS serialises cleanly.
+    With ``suggest=None`` (unit tests that predate Phase 5), the loop
+    behaves identically to the Phase 2 implementation.
 
     Args:
         ws: The accepted WebSocket. ``receive_bytes`` raises
@@ -185,6 +199,9 @@ async def run_utterance_loop(
             ``asyncio.to_thread`` wrap inside this callable; this
             function is therefore agnostic to the threadpool strategy
             (real to_thread, custom executor, or a sync fake in tests).
+        suggest: Optional Phase 5 callback. If provided, called with
+            ``(transcript_text, t_speech_end_ms, utterance_id)`` after
+            every ``FinalTranscript``. None is safe — skips the pipeline.
     """
     speech_buffer: list[NDArray[np.float32]] = []
     t_speech_start_ms = 0
@@ -313,6 +330,18 @@ async def run_utterance_loop(
                 logger.bind(event="stt.audit.insert_failed").error(
                     {"utterance_id": utterance_id, "err": str(e)}
                 )
+
+            # Phase 5 INT-02: stream RAG → LLM suggestion events after final.
+            # Awaited inline (not fire-and-forget) to keep the per-connection
+            # WS serialised. Defensive try/except: a pipeline failure MUST NOT
+            # crash the STT loop or suppress the already-sent FinalTranscript.
+            if suggest is not None:
+                try:
+                    await suggest(text, t_speech_end_ms, utterance_id)
+                except Exception as e:
+                    logger.bind(event="pipeline.suggest_failed").error(
+                        {"utterance_id": utterance_id, "err": str(e)}
+                    )
 
             # Reset utterance state — the underlying VADIterator carries
             # silero's segmentation state across utterances on the same

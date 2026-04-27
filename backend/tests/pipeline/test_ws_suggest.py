@@ -26,7 +26,6 @@ from fastapi.testclient import TestClient
 
 from receptra.stt.vad import FRAME_BYTES, FRAME_SAMPLES, SAMPLE_RATE_HZ
 
-
 # ---------------------------------------------------------------------------
 # PCM synthesis helpers (same as test_ws_pcm_roundtrip.py)
 # ---------------------------------------------------------------------------
@@ -141,27 +140,30 @@ def test_ws_emits_suggestion_events_after_final(
     or processes tokens from our mock — either way SuggestionComplete arrives).
     """
     gen = _make_canned_suggestion_gen(["אנחנו", " פתוחים"])
+    events: list[dict[str, Any]] = []
 
-    with patch("receptra.pipeline.hot_path.generate_suggestions", return_value=gen):
-        with TestClient(pipeline_app) as tc, tc.websocket_connect("/ws/stt") as ws:
-            ready = ws.receive_json()
-            assert ready["type"] == "ready"
+    with (
+        patch("receptra.pipeline.hot_path.generate_suggestions", return_value=gen),
+        TestClient(pipeline_app) as tc,
+        tc.websocket_connect("/ws/stt") as ws,
+    ):
+        ready = ws.receive_json()
+        assert ready["type"] == "ready"
 
-            # Speak: 5 silence + 60 voiced + 40 silence (triggers VAD end).
-            for _ in range(5):
-                ws.send_bytes(_silence_frame())
-            for i in range(60):
-                ws.send_bytes(_voiced_frame(phase=i * FRAME_SAMPLES / SAMPLE_RATE_HZ))
-            for _ in range(40):
-                ws.send_bytes(_silence_frame())
+        # Speak: 5 silence + 60 voiced + 40 silence (triggers VAD end).
+        for _ in range(5):
+            ws.send_bytes(_silence_frame())
+        for i in range(60):
+            ws.send_bytes(_voiced_frame(phase=i * FRAME_SAMPLES / SAMPLE_RATE_HZ))
+        for _ in range(40):
+            ws.send_bytes(_silence_frame())
 
-            events: list[dict[str, Any]] = []
-            # Collect up to 300 events; stop after suggestion_complete.
-            for _ in range(300):
-                evt = ws.receive_json()
-                events.append(evt)
-                if evt["type"] == "suggestion_complete":
-                    break
+        # Collect up to 300 events; stop after suggestion_complete.
+        for _ in range(300):
+            evt = ws.receive_json()
+            events.append(evt)
+            if evt["type"] == "suggestion_complete":
+                break
 
     types = {e["type"] for e in events}
     assert "final" in types, f"No final event; got: {types}"
@@ -173,23 +175,26 @@ def test_ws_suggestion_complete_has_latency_fields(
 ) -> None:
     """suggestion_complete event carries rag_latency_ms + e2e_latency_ms (INT-03)."""
     gen = _make_canned_suggestion_gen([])
+    events: list[dict[str, Any]] = []
 
-    with patch("receptra.pipeline.hot_path.generate_suggestions", return_value=gen):
-        with TestClient(pipeline_app) as tc, tc.websocket_connect("/ws/stt") as ws:
-            ws.receive_json()  # ready
-            for _ in range(5):
-                ws.send_bytes(_silence_frame())
-            for i in range(60):
-                ws.send_bytes(_voiced_frame(phase=i * FRAME_SAMPLES / SAMPLE_RATE_HZ))
-            for _ in range(40):
-                ws.send_bytes(_silence_frame())
+    with (
+        patch("receptra.pipeline.hot_path.generate_suggestions", return_value=gen),
+        TestClient(pipeline_app) as tc,
+        tc.websocket_connect("/ws/stt") as ws,
+    ):
+        ws.receive_json()  # ready
+        for _ in range(5):
+            ws.send_bytes(_silence_frame())
+        for i in range(60):
+            ws.send_bytes(_voiced_frame(phase=i * FRAME_SAMPLES / SAMPLE_RATE_HZ))
+        for _ in range(40):
+            ws.send_bytes(_silence_frame())
 
-            events: list[dict[str, Any]] = []
-            for _ in range(300):
-                evt = ws.receive_json()
-                events.append(evt)
-                if evt["type"] == "suggestion_complete":
-                    break
+        for _ in range(300):
+            evt = ws.receive_json()
+            events.append(evt)
+            if evt["type"] == "suggestion_complete":
+                break
 
     complete = [e for e in events if e["type"] == "suggestion_complete"]
     assert complete, "No suggestion_complete event"
@@ -204,28 +209,28 @@ def test_ws_degraded_no_embedder(
 ) -> None:
     """INT-04: embedder=None in app.state → WS does not crash; SuggestionComplete arrives."""
     gen = _make_canned_suggestion_gen([])
+    events: list[dict[str, Any]] = []
 
-    with patch("receptra.pipeline.hot_path.generate_suggestions", return_value=gen):
-        with TestClient(pipeline_app) as tc:
-            # Remove embedder after startup to simulate degradation.
-            tc.app.state.embedder = None  # type: ignore[attr-defined]
-            tc.app.state.chroma_collection = None  # type: ignore[attr-defined]
+    with patch("receptra.pipeline.hot_path.generate_suggestions", return_value=gen), \
+            TestClient(pipeline_app) as tc:
+        # Remove embedder after startup to simulate degradation.
+        tc.app.state.embedder = None  # type: ignore[attr-defined]
+        tc.app.state.chroma_collection = None  # type: ignore[attr-defined]
 
-            with tc.websocket_connect("/ws/stt") as ws:
-                ws.receive_json()  # ready
-                for _ in range(5):
-                    ws.send_bytes(_silence_frame())
-                for i in range(60):
-                    ws.send_bytes(_voiced_frame(phase=i * FRAME_SAMPLES / SAMPLE_RATE_HZ))
-                for _ in range(40):
-                    ws.send_bytes(_silence_frame())
+        with tc.websocket_connect("/ws/stt") as ws:
+            ws.receive_json()  # ready
+            for _ in range(5):
+                ws.send_bytes(_silence_frame())
+            for i in range(60):
+                ws.send_bytes(_voiced_frame(phase=i * FRAME_SAMPLES / SAMPLE_RATE_HZ))
+            for _ in range(40):
+                ws.send_bytes(_silence_frame())
 
-                events: list[dict[str, Any]] = []
-                for _ in range(300):
-                    evt = ws.receive_json()
-                    events.append(evt)
-                    if evt["type"] == "suggestion_complete":
-                        break
+            for _ in range(300):
+                evt = ws.receive_json()
+                events.append(evt)
+                if evt["type"] == "suggestion_complete":
+                    break
 
     types = {e["type"] for e in events}
     assert "suggestion_complete" in types, f"Expected suggestion_complete; got {types}"

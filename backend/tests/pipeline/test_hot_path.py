@@ -20,7 +20,6 @@ import pytest
 
 from tests.pipeline.conftest import _FakeWs
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -72,7 +71,7 @@ async def test_make_suggest_fn_returns_callable(
     fake_collection: MagicMock,
 ) -> None:
     """make_suggest_fn returns an async callable."""
-    from receptra.pipeline.hot_path import SuggestFn, make_suggest_fn
+    from receptra.pipeline.hot_path import make_suggest_fn
 
     fn = make_suggest_fn(fake_ws, fake_embedder, fake_collection)  # type: ignore[arg-type]
     assert callable(fn)

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sqlite3
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -86,5 +85,5 @@ def test_insert_without_init_raises(tmp_path: Path) -> None:
     """insert_pipeline_run raises if table does not exist (mirrors stt/audit contract)."""
     db = tmp_path / "no_init.sqlite"
     rec = _make_record()
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.OperationalError):
         insert_pipeline_run(db, rec)
