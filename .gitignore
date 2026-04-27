@@ -75,3 +75,9 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Claude Code worktrees (auto-created by claude cli, never committed)
+.claude/worktrees/
+
+# Compiled Python
+*.pyo

@@ -15,7 +15,6 @@ htmlcov/
 
 # Dev artifacts
 tests/
-README.md
 
 # Env files — NEVER bake into image
 .env

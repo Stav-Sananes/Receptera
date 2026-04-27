@@ -17,7 +17,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 WORKDIR /app
 
 # Copy dep files first — leverages Docker layer cache when source changes but deps don't.
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy source and install the package itself.
