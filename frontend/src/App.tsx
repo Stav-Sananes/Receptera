@@ -1,23 +1,66 @@
+/**
+ * App — Receptra browser sidebar root (Phase 6).
+ *
+ * Layout (RTL):
+ *   ┌─────────────────────────── StatusBar ─────────────────────────────┐
+ *   │  TranscriptPanel  │  SuggestionPanel                              │
+ *   └───────────────────────────── KbPanel ─────────────────────────────┘
+ *
+ * useWebSocket manages the /ws/stt connection + all WS event state.
+ * useAudioCapture manages the MediaDevices + AudioWorklet pipeline.
+ * The two hooks are composed here — `sendBinary` from useWebSocket
+ * flows into useAudioCapture.start().
+ */
+
+import { useCallback } from 'react'
+import { KbPanel } from './components/KbPanel'
+import { StatusBar } from './components/StatusBar'
+import { SuggestionPanel } from './components/SuggestionPanel'
+import { TranscriptPanel } from './components/TranscriptPanel'
+import { useAudioCapture } from './hooks/useAudioCapture'
+import { useWebSocket } from './hooks/useWebSocket'
+
 export default function App() {
+  const ws = useWebSocket()
+  const audio = useAudioCapture()
+
+  const handleStart = useCallback(async () => {
+    // Connect WS first, then open microphone.
+    ws.connect()
+    await audio.start(ws.sendBinary, () => {
+      // WS already connected above; no-op callback.
+    })
+  }, [ws, audio])
+
+  const handleStop = useCallback(() => {
+    audio.stop(ws.disconnect)
+  }, [ws, audio])
+
   return (
-    <main className="min-h-screen bg-gray-50 p-8 text-gray-900" dir="rtl" lang="he">
-      <header className="mx-auto max-w-3xl">
-        <h1 className="text-3xl font-bold tracking-tight">Receptra</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Foundation skeleton — Phase 1. Live Hebrew transcript + grounded suggestions land in Phase
-          6.
-        </p>
-      </header>
-      <section className="mx-auto mt-8 max-w-3xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">Status</h2>
-        <ul className="mt-2 list-inside list-disc text-sm text-gray-700">
-          <li>
-            Backend: <code className="rounded bg-gray-100 px-1">GET /healthz</code>
-          </li>
-          <li>Frontend: Vite dev server on port 5173</li>
-          <li>Next phase: Hebrew streaming STT (Phase 2)</li>
-        </ul>
-      </section>
-    </main>
+    <div className="flex h-screen flex-col overflow-hidden bg-gray-50" dir="rtl" lang="he">
+      <StatusBar
+        status={ws.status}
+        modelName={ws.modelName}
+        isCapturing={audio.isCapturing}
+        micError={audio.micError}
+        onStart={() => void handleStart()}
+        onStop={handleStop}
+      />
+
+      {/* Main two-column layout */}
+      <div className="grid flex-1 grid-cols-2 gap-3 overflow-hidden p-3">
+        <TranscriptPanel partialText={ws.partialText} finals={ws.finals} />
+        <SuggestionPanel
+          tokenBuffer={ws.tokenBuffer}
+          suggestions={ws.suggestions}
+          pipelineError={ws.pipelineError}
+        />
+      </div>
+
+      {/* KB management panel (collapsible) */}
+      <div className="border-t border-gray-200 p-3">
+        <KbPanel />
+      </div>
+    </div>
   )
 }
