@@ -82,7 +82,8 @@ def test_extract_docx_tables() -> None:
 def test_extract_docx_empty_raises() -> None:
     import docx as _docx
 
-    from receptra.rag.ingest import IngestRejected, _extract_docx
+    from receptra.rag.errors import IngestRejected
+    from receptra.rag.ingest import _extract_docx
 
     buf = io.BytesIO()
     doc = _docx.Document()
@@ -93,7 +94,8 @@ def test_extract_docx_empty_raises() -> None:
 
 
 def test_extract_pdf_invalid_bytes_raises() -> None:
-    from receptra.rag.ingest import IngestRejected, _extract_pdf
+    from receptra.rag.errors import IngestRejected
+    from receptra.rag.ingest import _extract_pdf
 
     with pytest.raises(IngestRejected) as exc_info:
         _extract_pdf(b"not a pdf")

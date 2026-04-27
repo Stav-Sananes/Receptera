@@ -81,6 +81,13 @@ select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
 # Plan 04-04: Hebrew test strings are intentional; RUF001 ambiguous-glyph warnings are noise.
 "tests/rag/test_04_ingest.py" = ["S101", "RUF001"]
 "tests/rag/test_04_retriever.py" = ["S101", "RUF001"]
+# Feature 2: Hebrew test strings in PDF/DOCX ingestion tests.
+"tests/rag/test_ingest_pdf_docx.py" = ["S101", "RUF001"]
+# Feature 3: Hebrew summary prompt + few-shot strings use real geresh/gershayim codepoints.
+# E501 cannot be wrapped without altering locked prompt content; RUF001 is intentional Hebrew.
+"src/receptra/summary/prompts.py" = ["E501", "RUF001", "RUF002", "RUF003"]
+# Feature 3: Hebrew test strings are intentional.
+"tests/summary/test_summary_router.py" = ["S101", "RUF001"]
 
 [tool.mypy]
 strict = true
@@ -101,6 +108,11 @@ warn_unused_ignores = false
 # silero_vad ship without type stubs; their public surface we use is narrow.
 [[tool.mypy.overrides]]
 module = ["faster_whisper", "faster_whisper.*", "silero_vad", "silero_vad.*"]
+ignore_missing_imports = true
+
+# Feature 2 (PDF/DOCX ingestion): pypdf ships py.typed but bidi and docx do not.
+[[tool.mypy.overrides]]
+module = ["bidi", "bidi.*", "docx", "docx.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

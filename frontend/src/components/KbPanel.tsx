@@ -49,8 +49,8 @@ export function KbPanel() {
 
   const handleUpload = useCallback(
     async (file: File) => {
-      if (!file.name.match(/\.(md|txt)$/i)) {
-        setUploadError('רק קבצי .md ו-.txt נתמכים')
+      if (!file.name.match(/\.(md|txt|pdf|docx)$/i)) {
+        setUploadError('רק קבצי .md, .txt, .pdf ו-.docx נתמכים')
         return
       }
       setUploading(true)
@@ -113,12 +113,12 @@ export function KbPanel() {
           className={`cursor-pointer rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
         >
           <p className="text-sm text-gray-500">
-            {uploading ? 'מעלה...' : 'גרור קובץ או לחץ להעלאה (.md / .txt)'}
+            {uploading ? 'מעלה...' : 'גרור קובץ או לחץ להעלאה (.md / .txt / .pdf / .docx)'}
           </p>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".md,.txt"
+            accept=".md,.txt,.pdf,.docx"
             className="hidden"
             onChange={handleFileChange}
           />

@@ -1,14 +1,18 @@
 """Hebrew document ingest pipeline (RAG-03 ingest half).
 
-Pipeline: filename + bytes → ext+size+UTF-8 gates → chunk_hebrew → embed_batch
+Pipeline: filename + bytes → ext+size+text-extract gates → chunk_hebrew → embed_batch
           → delete-existing-where-filename → collection.add → IngestResult.
 
 Pitfall #8 mitigation: re-ingest of same filename DELETES prior chunks
 BEFORE adding new ones. chunks_replaced count surfaced to caller.
 
-D-09 lock: ALLOWED_EXTS = {".md", ".txt"} only; MAX_BYTES = 1 MiB.
+D-09 lock: ALLOWED_EXTS = {".md", ".txt", ".pdf", ".docx"}; MAX_BYTES = 1 MiB.
 D-03 lock: all sync chromadb calls wrapped via asyncio.to_thread.
 D-02 lock: embedder is injected — never construct AsyncClient here.
+
+Feature 2: PDF extraction via pypdf (BSD-3-Clause) with python-bidi BiDi fix
+           for Hebrew visual-order PDFs. DOCX extraction via python-docx (MIT).
+           Both libraries are lazy-imported inside their extractor functions.
 """
 
 from __future__ import annotations
@@ -27,7 +31,7 @@ if TYPE_CHECKING:
 
     from receptra.rag.embeddings import BgeM3Embedder
 
-ALLOWED_EXTS: frozenset[str] = frozenset({".md", ".txt"})
+ALLOWED_EXTS: frozenset[str] = frozenset({".md", ".txt", ".pdf", ".docx"})
 MAX_BYTES: int = 1_048_576  # 1 MiB (D-09 lock)
 
 
@@ -58,6 +62,67 @@ def _decode_utf8_strict(content: bytes) -> str:
         ) from e
 
 
+def _extract_text(filename: str, content: bytes) -> str:
+    """Dispatch to format-specific extractor based on file extension."""
+    lower = filename.lower()
+    if lower.endswith(".pdf"):
+        return _extract_pdf(content)
+    if lower.endswith(".docx"):
+        return _extract_docx(content)
+    return _decode_utf8_strict(content)
+
+
+def _extract_pdf(content: bytes) -> str:
+    """Extract text from PDF bytes. Applies BiDi fix for Hebrew visual-order PDFs."""
+    import io as _io
+
+    import pypdf  # BSD-3-Clause
+    from bidi.algorithm import get_display  # LGPL-2.1 — used as library only
+
+    try:
+        reader = pypdf.PdfReader(_io.BytesIO(content))
+    except Exception as exc:
+        raise IngestRejected(code="encoding_error", detail=f"PDF parse failed: {exc}") from exc
+
+    pages: list[str] = []
+    for page in reader.pages:
+        raw = page.extract_text(extraction_mode="layout") or ""
+        if raw.strip():
+            pages.append(get_display(raw))
+    text = "\n\n".join(pages)
+    if not text.strip():
+        raise IngestRejected(
+            code="encoding_error",
+            detail="PDF yielded no extractable text (scanned PDF?)",
+        )
+    return text
+
+
+def _extract_docx(content: bytes) -> str:
+    """Extract text from DOCX bytes, including table cells."""
+    import io as _io
+
+    import docx  # python-docx, MIT
+
+    try:
+        doc = docx.Document(_io.BytesIO(content))
+    except Exception as exc:
+        raise IngestRejected(code="encoding_error", detail=f"DOCX parse failed: {exc}") from exc
+
+    parts: list[str] = [p.text for p in doc.paragraphs if p.text.strip()]
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                if cell.text.strip():
+                    parts.append(cell.text.strip())
+    if not parts:
+        raise IngestRejected(
+            code="encoding_error",
+            detail="DOCX yielded no paragraph or table text",
+        )
+    return "\n\n".join(parts)
+
+
 async def ingest_document(
     *,
     filename: str,
@@ -65,12 +130,13 @@ async def ingest_document(
     embedder: BgeM3Embedder,
     collection: Collection,
 ) -> IngestResult:
-    """Ingest one Hebrew .md/.txt document into the RAG collection.
+    """Ingest one Hebrew document (.md/.txt/.pdf/.docx) into the RAG collection.
 
     Args:
         filename: original filename (extension used for allowlist check;
             stored as metadata only — never used as a filesystem path).
-        content: raw file bytes (UTF-8 strict; max 1 MiB).
+        content: raw file bytes (max 1 MiB). .md/.txt must be UTF-8 strict;
+            .pdf/.docx are parsed by pypdf / python-docx respectively.
         embedder: BgeM3Embedder instance (injected by lifespan / test).
         collection: ChromaDB Collection (injected by lifespan / test).
 
@@ -82,7 +148,7 @@ async def ingest_document(
     """
     _validate_extension(filename)
     _validate_size(content)
-    text = _decode_utf8_strict(content)
+    text = _extract_text(filename, content)
 
     doc_sha = hashlib.sha256(content).hexdigest()
     chunks = chunk_hebrew(text)
@@ -130,4 +196,11 @@ async def ingest_document(
     )
 
 
-__all__ = ["ALLOWED_EXTS", "MAX_BYTES", "ingest_document"]
+__all__ = [
+    "ALLOWED_EXTS",
+    "MAX_BYTES",
+    "_extract_docx",
+    "_extract_pdf",
+    "_extract_text",
+    "ingest_document",
+]

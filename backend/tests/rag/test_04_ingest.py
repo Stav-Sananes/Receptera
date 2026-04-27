@@ -3,6 +3,10 @@
 12 tests covering extension allowlist, size cap, UTF-8 strict decode,
 empty-after-chunking, happy path, re-ingest idempotency (Pitfall #8),
 asyncio.to_thread wrapping (D-03), and v2 forward-compat tenant_id.
+
+Feature 2 amendment: ALLOWED_EXTS now includes .pdf and .docx.
+test_rejects_pdf_extension removed; test_rejects_doc_and_rtf updated
+to only assert .doc and .rtf are still rejected.
 """
 
 from __future__ import annotations
@@ -39,21 +43,11 @@ def _fake_embedder(n_chunks: int = 3) -> AsyncMock:
 
 # --- Extension allowlist ---
 
-@pytest.mark.asyncio
-async def test_rejects_pdf_extension() -> None:
-    with pytest.raises(IngestRejected) as exc:
-        await ingest_document(
-            filename="report.pdf",
-            content=b"%PDF-1.4 content",
-            embedder=_fake_embedder(),
-            collection=_fake_collection(),
-        )
-    assert exc.value.code == "unsupported_extension"
-
 
 @pytest.mark.asyncio
-async def test_rejects_docx_and_doc_and_rtf() -> None:
-    for ext in ("report.docx", "report.doc", "report.rtf"):
+async def test_rejects_doc_and_rtf() -> None:
+    """Feature 2: .pdf and .docx are now accepted; .doc and .rtf remain rejected."""
+    for ext in ("report.doc", "report.rtf"):
         with pytest.raises(IngestRejected) as exc:
             await ingest_document(
                 filename=ext,
@@ -81,6 +75,7 @@ async def test_accepts_md_and_txt() -> None:
 
 
 # --- Size cap ---
+
 
 @pytest.mark.asyncio
 async def test_rejects_oversized() -> None:
@@ -112,6 +107,7 @@ async def test_accepts_at_max_size() -> None:
 
 # --- UTF-8 strict decode ---
 
+
 @pytest.mark.asyncio
 async def test_rejects_non_utf8() -> None:
     bad_bytes = b"\xff\xfe\x00\x00\xc1"  # invalid UTF-8
@@ -127,6 +123,7 @@ async def test_rejects_non_utf8() -> None:
 
 # --- Empty after chunking ---
 
+
 @pytest.mark.asyncio
 async def test_rejects_empty_after_chunking() -> None:
     whitespace_only = b"   \n\n  \t  "
@@ -141,6 +138,7 @@ async def test_rejects_empty_after_chunking() -> None:
 
 
 # --- Happy path ---
+
 
 @pytest.mark.asyncio
 async def test_happy_path_calls_chunker_and_embedder() -> None:

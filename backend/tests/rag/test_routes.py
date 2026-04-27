@@ -36,11 +36,14 @@ def _meta(filename: str = "policy.md", idx: int = 0) -> dict:  # type: ignore[ty
 # ---------------------------------------------------------------------------
 
 
-def test_upload_pdf_returns_415(client: TestClient) -> None:
-    """Unsupported extension → 415 Unsupported Media Type."""
+def test_upload_rtf_returns_415(client: TestClient) -> None:
+    """Unsupported extension → 415 Unsupported Media Type.
+
+    Feature 2: .pdf and .docx are now accepted; .rtf remains unsupported.
+    """
     resp = client.post(
         "/api/kb/upload",
-        files={"file": ("report.pdf", b"%PDF-1.4 content", "application/pdf")},
+        files={"file": ("report.rtf", b"rtf content", "application/rtf")},
     )
     assert resp.status_code == 415
     body = resp.json()
@@ -100,10 +103,13 @@ def test_ingest_text_happy_path(
 
 
 def test_ingest_text_unsupported_ext_returns_415(client: TestClient) -> None:
-    """Unsupported extension via JSON ingest → 415."""
+    """Unsupported extension via JSON ingest → 415.
+
+    Feature 2: .pdf and .docx are now accepted; .rtf remains unsupported.
+    """
     resp = client.post(
         "/api/kb/ingest-text",
-        json={"filename": "doc.pdf", "content": "some content"},
+        json={"filename": "doc.rtf", "content": "some content"},
     )
     assert resp.status_code == 415
     assert resp.json()["detail"]["code"] == "unsupported_extension"
