@@ -12,26 +12,56 @@
  * flows into useAudioCapture.start().
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CallSummary } from './api/summary'
 import { generateSummary } from './api/summary'
+import { HistoryPanel } from './components/HistoryPanel'
 import { KbPanel } from './components/KbPanel'
 import { StatusBar } from './components/StatusBar'
 import { SummaryPanel } from './components/SummaryPanel'
 import { SuggestionPanel } from './components/SuggestionPanel'
 import { TranscriptPanel } from './components/TranscriptPanel'
 import { useAudioCapture } from './hooks/useAudioCapture'
+import { useCallHistory } from './hooks/useCallHistory'
 import { useWebSocket } from './hooks/useWebSocket'
 
 export default function App() {
   const ws = useWebSocket()
   const audio = useAudioCapture()
+  const history = useCallHistory()
 
   const [summary, setSummary] = useState<CallSummary | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
 
+  // Stable id for the current in-progress call. Set on Start, cleared on
+  // a fresh start so each session gets its own history row.
+  const callIdRef = useRef<string | null>(null)
+  const callStartRef = useRef<number>(0)
+
+  // Auto-persist the in-progress call to localStorage whenever its
+  // contents change (finals, intent, or summary). On the next start,
+  // a new id is minted, freezing the previous call as a history entry.
+  useEffect(() => {
+    if (!callIdRef.current) return
+    if (ws.finals.length === 0 && !summary) return
+    history.saveCall({
+      id: callIdRef.current,
+      startedAt: callStartRef.current,
+      finals: ws.finals,
+      intent: ws.latestIntent,
+      summary,
+    })
+  }, [ws.finals, ws.latestIntent, summary, history])
+
   const handleStart = useCallback(async () => {
+    // Mint a fresh call id — previous call (if any) is already saved
+    // to history under its own id.
+    callIdRef.current = `call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    callStartRef.current = Date.now()
+    setSummary(null)
+    setSummaryError(null)
+
     // Connect WS first, then open microphone.
     ws.connect()
     await audio.start(ws.sendBinary, () => {
@@ -103,6 +133,17 @@ export default function App() {
             loading={summaryLoading}
             error={summaryError}
             onCopy={handleCopySummary}
+          />
+        </div>
+      )}
+
+      {/* Past calls (localStorage-backed) */}
+      {history.calls.length > 0 && (
+        <div className="border-t border-gray-200 p-3">
+          <HistoryPanel
+            calls={history.calls}
+            onRemove={history.removeCall}
+            onClearAll={history.clearAll}
           />
         </div>
       )}
