@@ -67,6 +67,24 @@ export interface SuggestionError {
   detail: string
 }
 
+// --- Intent detection (v1.1 F4) ---
+
+export type IntentLabel =
+  | 'booking'
+  | 'complaint'
+  | 'billing'
+  | 'information'
+  | 'cancellation'
+  | 'other'
+
+export interface IntentDetected {
+  type: 'intent_detected'
+  label: IntentLabel
+  /** Hebrew display string, e.g. "הזמנה" */
+  label_he: string
+  utterance_id: string
+}
+
 export type WsEvent =
   | SttReady
   | PartialTranscript
@@ -75,5 +93,6 @@ export type WsEvent =
   | SuggestionToken
   | SuggestionComplete
   | SuggestionError
+  | IntentDetected
 
 export type WsStatus = 'disconnected' | 'connecting' | 'connected' | 'error'

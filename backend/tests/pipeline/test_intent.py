@@ -14,7 +14,6 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-
 # ── Schema tests ──────────────────────────────────────────────────────────────
 
 
@@ -55,7 +54,12 @@ def test_intent_detected_in_pipeline_event_union() -> None:
 
     from receptra.pipeline.events import PipelineEvent
 
-    raw = {"type": "intent_detected", "label": "information", "label_he": "מידע", "utterance_id": "u-4"}
+    raw = {
+        "type": "intent_detected",
+        "label": "information",
+        "label_he": "מידע",
+        "utterance_id": "u-4",
+    }
     evt = TypeAdapter(PipelineEvent).validate_python(raw)
     assert evt.type == "intent_detected"  # type: ignore[union-attr]
 
@@ -140,7 +144,8 @@ def test_detect_intent_and_send_sends_ws_event() -> None:
             sent.append(data)
 
     async def run():
-        with patch("receptra.pipeline.intent.detect_intent", new=AsyncMock(return_value="information")):
+        mock_intent = AsyncMock(return_value="information")
+        with patch("receptra.pipeline.intent.detect_intent", new=mock_intent):
             await detect_intent_and_send("מה שעות הפתיחה?", FakeWs(), "uid-99")
 
     asyncio.get_event_loop().run_until_complete(run())

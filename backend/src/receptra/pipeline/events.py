@@ -16,6 +16,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from receptra.llm.schema import Suggestion
 
+IntentLabel = Literal[
+    "booking", "complaint", "billing", "information", "cancellation", "other"
+]
+
 
 class SuggestionToken(BaseModel):
     """One LLM token delta — streamed for typewriter rendering in the frontend."""
@@ -69,8 +73,28 @@ class SuggestionError(BaseModel):
     detail: str
 
 
+class IntentDetected(BaseModel):
+    """Intent classification result for the current utterance (v1.1 F4).
+
+    Sent in parallel with the suggestion stream — arrives before or alongside
+    ``SuggestionComplete``. The frontend renders a badge on the transcript row.
+
+    ``label`` — canonical English key (``booking``, ``complaint``, ``billing``,
+    ``information``, ``cancellation``, ``other``).
+    ``label_he`` — Hebrew display string (e.g. ``הזמנה``).
+    ``utterance_id`` — joins with the ``FinalTranscript`` utterance_id.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    type: Literal["intent_detected"] = "intent_detected"
+    label: IntentLabel
+    label_he: str
+    utterance_id: str
+
+
 PipelineEvent = Annotated[
-    SuggestionToken | SuggestionComplete | SuggestionError,
+    SuggestionToken | SuggestionComplete | SuggestionError | IntentDetected,
     Field(discriminator="type"),
 ]
 """Discriminated union of all pipeline-layer WebSocket events.
@@ -83,6 +107,8 @@ Usage::
 """
 
 __all__ = [
+    "IntentDetected",
+    "IntentLabel",
     "PipelineEvent",
     "SuggestionComplete",
     "SuggestionError",

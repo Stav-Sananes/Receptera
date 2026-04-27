@@ -8,12 +8,23 @@
  */
 
 import { useEffect, useRef } from 'react'
-import type { FinalTranscript } from '../types/ws'
+import type { FinalTranscript, IntentDetected } from '../types/ws'
+
+const INTENT_COLORS: Record<string, string> = {
+  booking:      'bg-blue-100 text-blue-800',
+  complaint:    'bg-red-100 text-red-800',
+  billing:      'bg-purple-100 text-purple-800',
+  information:  'bg-green-100 text-green-800',
+  cancellation: 'bg-orange-100 text-orange-800',
+  other:        'bg-gray-100 text-gray-700',
+}
 
 interface Props {
   partialText: string
   finals: FinalTranscript[]
   onEndCall?: () => void
+  /** Most recent intent classification (v1.1 F4). */
+  latestIntent?: IntentDetected | null
 }
 
 function LatencyBadge({ ms }: { ms: number }) {
@@ -25,7 +36,7 @@ function LatencyBadge({ ms }: { ms: number }) {
   )
 }
 
-export function TranscriptPanel({ partialText, finals, onEndCall }: Props) {
+export function TranscriptPanel({ partialText, finals, onEndCall, latestIntent }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -34,9 +45,17 @@ export function TranscriptPanel({ partialText, finals, onEndCall }: Props) {
 
   return (
     <section className="flex h-full flex-col rounded-lg border border-gray-200 bg-white">
-      <h2 className="border-b border-gray-100 px-4 py-2 text-sm font-semibold text-gray-700">
-        תמלול
-      </h2>
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+        <h2 className="text-sm font-semibold text-gray-700">תמלול</h2>
+        {latestIntent && (
+          <span
+            className={`rounded px-2 py-0.5 text-xs font-medium ${INTENT_COLORS[latestIntent.label] ?? INTENT_COLORS.other}`}
+            title={latestIntent.label}
+          >
+            {latestIntent.label_he}
+          </span>
+        )}
+      </div>
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
         {finals.length === 0 && !partialText && (
           <p className="text-sm text-gray-400">ממתין לדיבור...</p>

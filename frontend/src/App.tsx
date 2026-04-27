@@ -86,6 +86,7 @@ export default function App() {
           partialText={ws.partialText}
           finals={ws.finals}
           onEndCall={() => void handleEndCall()}
+          latestIntent={ws.latestIntent}
         />
         <SuggestionPanel
           tokenBuffer={ws.tokenBuffer}

@@ -48,6 +48,7 @@ from numpy.typing import NDArray
 
 from receptra.config import settings
 from receptra.pipeline.hot_path import SuggestFn, make_suggest_fn
+from receptra.pipeline.intent import detect_intent_and_send
 from receptra.stt.audit import init_audit_db, insert_stt_utterance
 from receptra.stt.engine import transcribe_hebrew
 from receptra.stt.events import FinalTranscript, PartialTranscript, SttError, SttReady
@@ -148,13 +149,9 @@ async def websocket_stt_endpoint(ws: WebSocket) -> None:
     except WebSocketDisconnect:
         logger.bind(event="stt.ws.disconnect").info({"msg": "client disconnected"})
     except Exception as e:  # pragma: no cover — defensive last-line catch
-        logger.bind(event="stt.ws.error").exception(
-            {"msg": "unexpected error", "err": str(e)}
-        )
+        logger.bind(event="stt.ws.error").exception({"msg": "unexpected error", "err": str(e)})
         with contextlib.suppress(Exception):
-            await ws.send_json(
-                SttError(code="model_error", message=str(e)).model_dump()
-            )
+            await ws.send_json(SttError(code="model_error", message=str(e)).model_dump())
     finally:
         # Pitfall #2 — defensive reset on cleanup. The wrapper is local
         # to this connection so reset is technically redundant, but the
@@ -217,9 +214,7 @@ async def run_utterance_loop(
         try:
             event = vad.feed(frame)
         except InvalidFrameError as e:
-            await ws.send_json(
-                SttError(code="protocol_error", message=str(e)).model_dump()
-            )
+            await ws.send_json(SttError(code="protocol_error", message=str(e)).model_dump())
             await ws.close(code=WS_CLOSE_INVALID_FRAME)
             return
 
@@ -331,13 +326,21 @@ async def run_utterance_loop(
                     {"utterance_id": utterance_id, "err": str(e)}
                 )
 
-            # Phase 5 INT-02: stream RAG → LLM suggestion events after final.
-            # Awaited inline (not fire-and-forget) to keep the per-connection
-            # WS serialised. Defensive try/except: a pipeline failure MUST NOT
-            # crash the STT loop or suppress the already-sent FinalTranscript.
+            # Phase 5 INT-02 + v1.1 F4: run suggest + intent detection in parallel.
+            # asyncio.gather with return_exceptions=True ensures intent failure
+            # never crashes the suggest pipeline (or vice versa).
             if suggest is not None:
                 try:
-                    await suggest(text, t_speech_end_ms, utterance_id)
+                    results = await asyncio.gather(
+                        suggest(text, t_speech_end_ms, utterance_id),
+                        detect_intent_and_send(text, ws, utterance_id),
+                        return_exceptions=True,
+                    )
+                    for r in results:
+                        if isinstance(r, BaseException):
+                            logger.bind(event="pipeline.parallel_failed").warning(
+                                {"utterance_id": utterance_id, "err": str(r)}
+                            )
                 except Exception as e:
                     logger.bind(event="pipeline.suggest_failed").error(
                         {"utterance_id": utterance_id, "err": str(e)}

@@ -17,6 +17,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type {
   FinalTranscript,
+  IntentDetected,
   SuggestionComplete,
   SuggestionError,
   SttError,
@@ -37,6 +38,8 @@ export interface WsState {
   tokenBuffer: string
   suggestions: SuggestionComplete | null
   pipelineError: SuggestionError | SttError | null
+  /** Most recent intent classification (v1.1 F4); null until first utterance. */
+  latestIntent: IntentDetected | null
   sendBinary: (data: ArrayBuffer) => void
   connect: () => void
   disconnect: () => void
@@ -52,6 +55,7 @@ export function useWebSocket(): WsState {
   const [tokenBuffer, setTokenBuffer] = useState('')
   const [suggestions, setSuggestions] = useState<SuggestionComplete | null>(null)
   const [pipelineError, setPipelineError] = useState<SuggestionError | SttError | null>(null)
+  const [latestIntent, setLatestIntent] = useState<IntentDetected | null>(null)
 
   const disconnect = useCallback(() => {
     const ws = wsRef.current
@@ -94,10 +98,11 @@ export function useWebSocket(): WsState {
         case 'final':
           setPartialText('')
           setFinals((prev) => [...prev, event])
-          // Reset suggestion state for new utterance
+          // Reset suggestion + intent state for new utterance
           setTokenBuffer('')
           setSuggestions(null)
           setPipelineError(null)
+          setLatestIntent(null)
           break
         case 'error':
           setPipelineError(event)
@@ -111,6 +116,9 @@ export function useWebSocket(): WsState {
           break
         case 'suggestion_error':
           setPipelineError(event)
+          break
+        case 'intent_detected':
+          setLatestIntent(event)
           break
       }
     }
@@ -140,6 +148,7 @@ export function useWebSocket(): WsState {
     tokenBuffer,
     suggestions,
     pipelineError,
+    latestIntent,
     sendBinary,
     connect,
     disconnect,
