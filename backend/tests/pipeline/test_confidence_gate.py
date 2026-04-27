@@ -97,7 +97,7 @@ def test_hot_path_computes_low_confidence_flag(tmp_path) -> None:
         embedder = AsyncMock()
         collection = MagicMock()
         suggest = make_suggest_fn(FakeWs(), embedder, collection)
-        asyncio.get_event_loop().run_until_complete(suggest("שאלה", 1000, "uid-1"))
+        asyncio.run(suggest("שאלה", 1000, "uid-1"))
 
     complete_events = [e for e in sent if e.get("type") == "suggestion_complete"]
     assert complete_events, f"No suggestion_complete found in: {sent}"

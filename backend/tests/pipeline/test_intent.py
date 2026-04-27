@@ -84,7 +84,7 @@ def test_detect_intent_returns_booking_for_hebrew_label() -> None:
             mock_get_client.return_value = mock_client
             return await detect_intent("אני רוצה לקבוע תור")
 
-    result = asyncio.get_event_loop().run_until_complete(run())
+    result = asyncio.run(run())
     assert result == "booking"
 
 
@@ -105,7 +105,7 @@ def test_detect_intent_returns_other_on_unknown_response() -> None:
             mock_get_client.return_value = mock_client
             return await detect_intent("some random text")
 
-    result = asyncio.get_event_loop().run_until_complete(run())
+    result = asyncio.run(run())
     assert result == "other"
 
 
@@ -126,7 +126,7 @@ def test_detect_intent_strips_whitespace_and_punctuation() -> None:
             mock_get_client.return_value = mock_client
             return await detect_intent("החשבונית לא נכונה")
 
-    result = asyncio.get_event_loop().run_until_complete(run())
+    result = asyncio.run(run())
     assert result == "complaint"
 
 
@@ -148,7 +148,7 @@ def test_detect_intent_and_send_sends_ws_event() -> None:
         with patch("receptra.pipeline.intent.detect_intent", new=mock_intent):
             await detect_intent_and_send("מה שעות הפתיחה?", FakeWs(), "uid-99")
 
-    asyncio.get_event_loop().run_until_complete(run())
+    asyncio.run(run())
     assert len(sent) == 1
     evt = sent[0]
     assert evt["type"] == "intent_detected"
@@ -173,4 +173,4 @@ def test_detect_intent_and_send_swallows_exceptions() -> None:
             # Must not raise
             await detect_intent_and_send("any text", FakeWs(), "uid-err")
 
-    asyncio.get_event_loop().run_until_complete(run())  # no exception == pass
+    asyncio.run(run())  # no exception == pass

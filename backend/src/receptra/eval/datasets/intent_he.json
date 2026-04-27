@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "language": "he",
+  "task": "intent_classification",
+  "labels": ["booking", "complaint", "billing", "information", "cancellation", "other"],
+  "samples": [
+    {"id": "b1", "text": "אני רוצה לקבוע תור לרופא שיניים ביום שלישי", "label": "booking"},
+    {"id": "b2", "text": "אפשר לתאם פגישה לבדיקת רכב?", "label": "booking"},
+    {"id": "b3", "text": "מתי יש לכם זמן פנוי השבוע?", "label": "booking"},
+    {"id": "b4", "text": "אני צריך לקבוע ייעוץ עם עורך דין", "label": "booking"},
+    {"id": "b5", "text": "תוכלו לקבוע לי תור לטיפול?", "label": "booking"},
+
+    {"id": "c1", "text": "המוצר שקיבלתי שבור ואני מאוד לא מרוצה", "label": "complaint"},
+    {"id": "c2", "text": "השירות שלכם נורא, אף אחד לא חוזר אליי", "label": "complaint"},
+    {"id": "c3", "text": "חיכיתי שעתיים בטלפון וזה לא מקובל", "label": "complaint"},
+    {"id": "c4", "text": "יש בעיה עם המוצר שקניתי, הוא לא עובד", "label": "complaint"},
+    {"id": "c5", "text": "אני רוצה להתלונן על הסוכן ששירת אותי", "label": "complaint"},
+
+    {"id": "bi1", "text": "למה החשבון שלי גבוה מהצפוי החודש?", "label": "billing"},
+    {"id": "bi2", "text": "חויבתי פעמיים על אותה הזמנה", "label": "billing"},
+    {"id": "bi3", "text": "כמה עולה השירות החודשי שלכם?", "label": "billing"},
+    {"id": "bi4", "text": "אפשר לקבל את החשבונית האחרונה?", "label": "billing"},
+    {"id": "bi5", "text": "מהו המחיר של החבילה הבסיסית?", "label": "billing"},
+
+    {"id": "i1", "text": "מה שעות הפעילות שלכם?", "label": "information"},
+    {"id": "i2", "text": "איפה הסניף הקרוב אליי?", "label": "information"},
+    {"id": "i3", "text": "האם אתם פתוחים בשבת?", "label": "information"},
+    {"id": "i4", "text": "אילו שירותים אתם מציעים?", "label": "information"},
+    {"id": "i5", "text": "מה הכתובת של המשרד הראשי?", "label": "information"},
+
+    {"id": "ca1", "text": "אני רוצה לבטל את המנוי שלי", "label": "cancellation"},
+    {"id": "ca2", "text": "תבטלו לי את ההזמנה בבקשה", "label": "cancellation"},
+    {"id": "ca3", "text": "אני לא צריך יותר את השירות, נא לבטל", "label": "cancellation"},
+    {"id": "ca4", "text": "תפסיקו לחייב אותי, אני מבטל", "label": "cancellation"},
+    {"id": "ca5", "text": "ההזמנה שעשיתי אתמול - תבטלו אותה", "label": "cancellation"},
+
+    {"id": "o1", "text": "תודה רבה, יום טוב", "label": "other"},
+    {"id": "o2", "text": "שלום, איך אתה היום?", "label": "other"},
+    {"id": "o3", "text": "אני רק רציתי להגיד תודה", "label": "other"},
+    {"id": "o4", "text": "כן בסדר", "label": "other"}
+  ]
+}
