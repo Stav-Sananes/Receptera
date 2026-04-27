@@ -28,7 +28,7 @@ _FEW_SHOT_USER: Final[str] = """<transcript>
 </transcript>"""
 
 _FEW_SHOT_ASST: Final[str] = (
-    '{"topic":"ביטול הזמנה מס׳ 12345",'
+    '{"topic":"ביטול הזמנה מס\' 12345",'
     '"key_points":["הלקוח ביקש ביטול הזמנה מהיום הקודם","הסוכן אישר את הביטול"],'
     '"action_items":["זיכוי כרטיס אשראי תוך 3-5 ימי עסקים"]}'
 )

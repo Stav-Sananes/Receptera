@@ -120,6 +120,19 @@ def make_suggest_fn(
 
         rag_latency_ms = _now_ms() - t_rag_start
 
+        # --- Confidence gate (v1.1 F1) ---
+        from receptra.config import settings as _settings
+
+        max_similarity = max(
+            (
+                float(c.source["similarity"])
+                for c in chunks
+                if c.source and "similarity" in c.source
+            ),
+            default=0.0,
+        )
+        low_confidence = bool(chunks) and max_similarity < _settings.rag_suggestion_threshold
+
         # --- LLM generation (empty chunks → canonical refusal via engine short-circuit) ---
         llm_ttft_ms: int | None = None
         llm_total_ms: int | None = None
@@ -151,6 +164,8 @@ def make_suggest_fn(
                                 model=event.model,
                                 rag_latency_ms=rag_latency_ms,
                                 e2e_latency_ms=e2e_latency_ms,
+                                rag_max_similarity=max_similarity,
+                                rag_low_confidence=low_confidence,
                             ).model_dump()
                         )
                     except Exception:
@@ -180,9 +195,7 @@ def make_suggest_fn(
 
         # --- INT-05: Unified audit log ---
         final_status = (
-            "rag_degraded" if rag_degraded
-            else llm_status if llm_status != "ok"
-            else "ok"
+            "rag_degraded" if rag_degraded else llm_status if llm_status != "ok" else "ok"
         )
         record = PipelineRunRecord(
             utterance_id=utterance_id,

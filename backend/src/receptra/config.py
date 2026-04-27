@@ -82,6 +82,11 @@ class Settings(BaseSettings):
     # recall@5 eval (Plan 04-06 — RAG-05) is the authoritative tuning lever.
     rag_min_similarity: float = 0.35
 
+    # UI confidence gate (v1.1 F1). Chunks between rag_min_similarity (0.35)
+    # and this threshold are passed to the LLM but the frontend renders a
+    # "ביטחון נמוך" badge. Set to 0.0 to disable the badge entirely.
+    rag_suggestion_threshold: float = 0.65
+
     # Greedy-chunker target window. RESEARCH §Hebrew Chunking Strategy:
     # 1500 chars ≈ 500 BGE-M3 tokens via the 1-token≈3-Hebrew-char heuristic;
     # validated by Wave-0 spike (scripts/spike_chunk_token_ratio.py) and

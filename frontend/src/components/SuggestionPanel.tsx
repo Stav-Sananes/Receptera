@@ -114,6 +114,13 @@ export function SuggestionPanel({ tokenBuffer, suggestions, pipelineError }: Pro
         {/* Structured suggestion cards */}
         {hasSuggestions && (
           <>
+            {suggestions.rag_low_confidence && (
+              <div className="rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2">
+                <p className="text-xs text-yellow-700">
+                  ⚠ ביטחון נמוך — ייתכן שהמידע חלקי ({Math.round(suggestions.rag_max_similarity * 100)}% התאמה)
+                </p>
+              </div>
+            )}
             {suggestions.suggestions.map((s, i) => (
               <SuggestionCard
                 key={i}

@@ -43,6 +43,14 @@ class SuggestionComplete(BaseModel):
     model: str = Field(..., description="Ollama model tag that served this request")
     rag_latency_ms: int = Field(..., description="RAG embed+query latency; 0 if skipped")
     e2e_latency_ms: int = Field(..., description="t_speech_end → suggestion_complete in ms")
+    rag_max_similarity: float = Field(
+        default=0.0,
+        description="Max chunk cosine similarity; 0.0 if no chunks retrieved",
+    )
+    rag_low_confidence: bool = Field(
+        default=False,
+        description="True when max_similarity < rag_suggestion_threshold",
+    )
 
 
 class SuggestionError(BaseModel):

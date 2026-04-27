@@ -55,6 +55,10 @@ export interface SuggestionComplete {
   model: string
   rag_latency_ms: number
   e2e_latency_ms: number
+  /** Max cosine similarity of retrieved chunks; 0.0 if no chunks (v1.1 F1). */
+  rag_max_similarity: number
+  /** True when max_similarity < rag_suggestion_threshold (v1.1 F1). */
+  rag_low_confidence: boolean
 }
 
 export interface SuggestionError {

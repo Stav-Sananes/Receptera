@@ -6,10 +6,13 @@ Verifies:
 - low_confidence=False when max similarity >= threshold
 - Frontend types mirror new fields (static — verified by TypeScript compiler)
 """
+
 from __future__ import annotations
 
-from receptra.pipeline.events import SuggestionComplete
+import pytest
+
 from receptra.llm.schema import Suggestion
+from receptra.pipeline.events import SuggestionComplete
 
 
 def _make_complete(**extra) -> SuggestionComplete:
@@ -43,6 +46,7 @@ def test_low_confidence_default_false() -> None:
 
 def test_config_has_suggestion_threshold() -> None:
     from receptra.config import Settings
+
     s = Settings()
     assert hasattr(s, "rag_suggestion_threshold")
     assert 0.0 <= s.rag_suggestion_threshold <= 1.0
@@ -50,6 +54,7 @@ def test_config_has_suggestion_threshold() -> None:
 
 def test_suggestion_threshold_default_is_0_65() -> None:
     from receptra.config import Settings
+
     s = Settings()
     assert s.rag_suggestion_threshold == 0.65
 
@@ -58,8 +63,9 @@ def test_hot_path_computes_low_confidence_flag(tmp_path) -> None:
     """make_suggest_fn sets rag_low_confidence=True when max chunk similarity < threshold."""
     import asyncio
     from unittest.mock import AsyncMock, MagicMock, patch
+
+    from receptra.llm.schema import ChunkRef, CompleteEvent, Suggestion
     from receptra.pipeline.hot_path import make_suggest_fn
-    from receptra.llm.schema import CompleteEvent, Suggestion, ChunkRef
 
     sent = []
 
@@ -100,6 +106,3 @@ def test_hot_path_computes_low_confidence_flag(tmp_path) -> None:
     assert evt["rag_low_confidence"] is True
     assert "rag_max_similarity" in evt
     assert evt["rag_max_similarity"] == pytest.approx(0.45, abs=0.01)
-
-
-import pytest
