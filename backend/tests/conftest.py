@@ -16,6 +16,12 @@ test path is collected. (Plan 03-01 originally registered it in
 ``tests/llm/conftest.py``; that registration is removed to avoid duplicate
 addinivalue_line entries.) Per-package live-test gates (LLM vs RAG) keep
 their separate ``RECEPTRA_*_LIVE_TEST`` env vars.
+
+Plan 04-05: ``_stub_heavy_loaders`` also stubs ``BgeM3Embedder`` and
+``open_collection`` so that the RAG lifespan init added in that plan does
+not attempt to reach Ollama or ChromaDB in offline CI. RAG route tests
+override ``app.state`` directly after TestClient startup (see
+tests/rag/conftest.py).
 """
 
 from __future__ import annotations
@@ -23,6 +29,7 @@ from __future__ import annotations
 import sys
 from collections.abc import Iterator
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -62,13 +69,35 @@ def _load_silero_stub(*_args: Any, **_kwargs: Any) -> object:
     return object()  # opaque sentinel
 
 
+class _BgeM3EmbedderStub:
+    """Offline stand-in for BgeM3Embedder — no Ollama connection."""
+
+    @classmethod
+    async def create_and_verify(cls) -> _BgeM3EmbedderStub:
+        stub = cls()
+        stub.embed_one = AsyncMock(return_value=[0.0] * 1024)  # type: ignore[attr-defined]
+        stub.embed_batch = AsyncMock(return_value=[[0.0] * 1024])  # type: ignore[attr-defined]
+        return stub
+
+
+def _open_collection_stub() -> MagicMock:
+    """Offline stand-in for open_collection — no ChromaDB connection."""
+    c = MagicMock(name="chroma.Collection.global_stub")
+    c.get.return_value = {"ids": [], "documents": [], "metadatas": [], "distances": []}
+    c.count.return_value = 0
+    c.query.return_value = {
+        "ids": [[]], "documents": [[]], "metadatas": [[]], "distances": [[]]
+    }
+    return c
+
+
 @pytest.fixture(autouse=True)
 def _stub_heavy_loaders(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Replace WhisperModel + load_silero_vad before any app import.
+    """Replace WhisperModel + load_silero_vad + RAG singletons before any app import.
 
     Ensures TestClient's lifespan startup does not try to load real weights
-    from ``$MODEL_DIR/whisper-turbo-ct2`` during offline CI. Individual STT
-    tests that need a richer mock (e.g., call counting) override these in
+    from ``$MODEL_DIR/whisper-turbo-ct2`` or reach Ollama/ChromaDB during
+    offline CI. Individual tests that need richer mocks override these in
     their own monkeypatch scope.
     """
     # Drop any cached import so fresh module-import picks up the stubs.
@@ -79,6 +108,8 @@ def _stub_heavy_loaders(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
     monkeypatch.setattr(lifespan_mod, "WhisperModel", _WhisperStub)
     monkeypatch.setattr(lifespan_mod, "load_silero_vad", _load_silero_stub)
+    monkeypatch.setattr(lifespan_mod, "BgeM3Embedder", _BgeM3EmbedderStub)
+    monkeypatch.setattr(lifespan_mod, "open_collection", _open_collection_stub)
 
     yield
 

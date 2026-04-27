@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI, WebSocket
 
 from receptra.lifespan import lifespan
+from receptra.rag.routes import router as kb_router
 from receptra.stt.pipeline import websocket_stt_endpoint
 
 app = FastAPI(
@@ -13,6 +14,9 @@ app = FastAPI(
     description="Hebrew-first local voice co-pilot backend.",
     lifespan=lifespan,
 )
+
+# RAG knowledge-base API (Plan 04-05 — RAG-03 + RAG-04 + RAG-06)
+app.include_router(kb_router, prefix="/api/kb", tags=["kb"])
 
 
 @app.get("/healthz")
