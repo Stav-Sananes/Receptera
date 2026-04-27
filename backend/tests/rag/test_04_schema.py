@@ -110,10 +110,17 @@ def test_kb_error_response_codes() -> None:
 
 
 def test_extra_fields_forbidden() -> None:
-    models_and_valid_kwargs = [
+    # dict[str, object] so that **valid_kwargs satisfies Mapping[str, object]
+    models_and_valid_kwargs: list[tuple[type, dict[str, object]]] = [
         (IngestTextRequest, {"filename": "a.md", "content": "x"}),
-        (IngestResult, {"filename": "a.md", "chunks_added": 1, "chunks_replaced": 0, "bytes_ingested": 1}),
-        (KbDocument, {"filename": "a.md", "chunk_count": 1, "ingested_at_iso": "2026-01-01T00:00:00Z"}),
+        (IngestResult, {
+            "filename": "a.md", "chunks_added": 1,
+            "chunks_replaced": 0, "bytes_ingested": 1,
+        }),
+        (KbDocument, {
+            "filename": "a.md", "chunk_count": 1,
+            "ingested_at_iso": "2026-01-01T00:00:00Z",
+        }),
         (KbQueryRequest, {"query": "x"}),
         (KbErrorResponse, {"code": "file_too_large", "detail": "d"}),
     ]

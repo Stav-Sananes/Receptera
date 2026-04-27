@@ -4,20 +4,18 @@
 empty-after-chunking, happy path, re-ingest idempotency (Pitfall #8),
 asyncio.to_thread wrapping (D-03), and v2 forward-compat tenant_id.
 """
-# ruff: noqa: RUF001
 
 from __future__ import annotations
 
 import asyncio
 import hashlib
-from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from receptra.rag.chunker import Chunk
 from receptra.rag.errors import IngestRejected
-from receptra.rag.ingest import ALLOWED_EXTS, MAX_BYTES, ingest_document
+from receptra.rag.ingest import MAX_BYTES, ingest_document
 
 
 def _make_chunk(idx: int, text: str) -> Chunk:
@@ -69,7 +67,7 @@ async def test_rejects_docx_and_doc_and_rtf() -> None:
 @pytest.mark.asyncio
 async def test_accepts_md_and_txt() -> None:
     for filename in ("policy.md", "faq.txt"):
-        content = "שלום עולם הזה".encode("utf-8")
+        content = "שלום עולם הזה".encode()
         embedder = _fake_embedder(1)
         collection = _fake_collection()
         result = await ingest_document(
@@ -146,7 +144,7 @@ async def test_rejects_empty_after_chunking() -> None:
 
 @pytest.mark.asyncio
 async def test_happy_path_calls_chunker_and_embedder() -> None:
-    content = "מדיניות החברה: שעות פתיחה הן 9-17. ימי עבודה א-ה.".encode("utf-8")
+    content = "מדיניות החברה: שעות פתיחה הן 9-17. ימי עבודה א-ה.".encode()
     doc_sha = hashlib.sha256(content).hexdigest()
     chunks = [
         _make_chunk(0, "מדיניות החברה"),
@@ -169,15 +167,9 @@ async def test_happy_path_calls_chunker_and_embedder() -> None:
     assert result.chunks_replaced == 0
     assert result.bytes_ingested == len(content)
 
-    # collection.add called once with correct shapes
+    # collection.add called once — always kwargs via asyncio.to_thread
     collection.add.assert_called_once()
-    call_kwargs = collection.add.call_args.kwargs if collection.add.call_args.kwargs else {}
-    if not call_kwargs:
-        call_kwargs = dict(zip(
-            ["ids", "documents", "embeddings", "metadatas"],
-            collection.add.call_args.args,
-        ))
-    ids = call_kwargs.get("ids") or collection.add.call_args[1].get("ids") or collection.add.call_args[0][0]
+    ids = collection.add.call_args.kwargs["ids"]
     assert len(ids) == 3
     # IDs follow {sha[:8]}:{chunk_index} scheme
     for i, chunk_id in enumerate(ids):
@@ -186,7 +178,7 @@ async def test_happy_path_calls_chunker_and_embedder() -> None:
 
 @pytest.mark.asyncio
 async def test_chunk_id_stable_across_runs() -> None:
-    content = "תוכן קבוע לבדיקת יציבות מזהי פיסות".encode("utf-8")
+    content = "תוכן קבוע לבדיקת יציבות מזהי פיסות".encode()
     doc_sha = hashlib.sha256(content).hexdigest()
     expected_prefix = doc_sha[:8]
 
@@ -195,11 +187,15 @@ async def test_chunk_id_stable_across_runs() -> None:
     collection1 = _fake_collection()
     collection2 = _fake_collection()
 
-    await ingest_document(filename="stable.md", content=content, embedder=embedder, collection=collection1)
-    await ingest_document(filename="stable.md", content=content, embedder=embedder, collection=collection2)
+    await ingest_document(
+        filename="stable.md", content=content, embedder=embedder, collection=collection1
+    )
+    await ingest_document(
+        filename="stable.md", content=content, embedder=embedder, collection=collection2
+    )
 
-    ids1 = collection1.add.call_args[1].get("ids") or collection1.add.call_args[0][0]
-    ids2 = collection2.add.call_args[1].get("ids") or collection2.add.call_args[0][0]
+    ids1 = collection1.add.call_args.kwargs["ids"]
+    ids2 = collection2.add.call_args.kwargs["ids"]
     assert ids1 == ids2
     for chunk_id in ids1:
         assert chunk_id.startswith(expected_prefix)
@@ -208,7 +204,7 @@ async def test_chunk_id_stable_across_runs() -> None:
 @pytest.mark.asyncio
 async def test_re_ingest_replaces() -> None:
     """CRITICAL Pitfall #8 regression: delete-before-add on re-ingest."""
-    content = "תוכן לבדיקת עדכון".encode("utf-8")
+    content = "תוכן לבדיקת עדכון".encode()
     existing = ["abc12345:0", "abc12345:1", "abc12345:2", "abc12345:3", "abc12345:4"]
     collection = _fake_collection(existing_ids=existing)
     embedder = AsyncMock(name="BgeM3Embedder")
@@ -223,10 +219,9 @@ async def test_re_ingest_replaces() -> None:
 
     # delete called BEFORE add
     delete_call_order = collection.delete.call_args_list
-    add_call_order = collection.add.call_args_list
     assert len(delete_call_order) >= 1, "collection.delete must be called on re-ingest"
     # Verify delete was called with the existing IDs
-    deleted_ids = delete_call_order[0][1].get("ids") or delete_call_order[0][0][0]
+    deleted_ids = delete_call_order[0].kwargs.get("ids") or delete_call_order[0].args[0]
     assert set(deleted_ids) == set(existing)
     assert result.chunks_replaced == 5
 
@@ -234,7 +229,7 @@ async def test_re_ingest_replaces() -> None:
 @pytest.mark.asyncio
 async def test_chromadb_calls_use_to_thread() -> None:
     """D-03 lock: all sync chromadb calls wrapped via asyncio.to_thread."""
-    content = "בדיקת עטיפת asyncio.to_thread".encode("utf-8")
+    content = "בדיקת עטיפת asyncio.to_thread".encode()
     embedder = AsyncMock(name="BgeM3Embedder")
     embedder.embed_batch.return_value = [[0.0] * 1024]
     collection = _fake_collection()
@@ -243,7 +238,7 @@ async def test_chromadb_calls_use_to_thread() -> None:
     original_to_thread = asyncio.to_thread
 
     async def recording_to_thread(func: object, *args: object, **kwargs: object) -> object:
-        to_thread_calls.append((func,) + args)
+        to_thread_calls.append((func, *args))
         return await original_to_thread(func, *args, **kwargs)  # type: ignore[arg-type]
 
     with patch("receptra.rag.ingest.asyncio.to_thread", side_effect=recording_to_thread):
@@ -263,7 +258,7 @@ async def test_chromadb_calls_use_to_thread() -> None:
 @pytest.mark.asyncio
 async def test_metadata_includes_v2_forward_compat() -> None:
     """RESEARCH §Open Decision 4: tenant_id=None in every metadata dict."""
-    content = "תכנון עתידי: tenant_id".encode("utf-8")
+    content = "תכנון עתידי: tenant_id".encode()
     embedder = AsyncMock(name="BgeM3Embedder")
     embedder.embed_batch.return_value = [[0.0] * 1024]
     collection = _fake_collection()
@@ -277,10 +272,8 @@ async def test_metadata_includes_v2_forward_compat() -> None:
 
     metadatas_arg = None
     for call in collection.add.call_args_list:
-        kw = call[1] if call[1] else {}
-        pos = call[0] if call[0] else ()
-        # Try keyword arg first, then positional
-        metadatas_arg = kw.get("metadatas") or (pos[3] if len(pos) > 3 else None)
+        # ingest_document calls collection.add with keyword args only via asyncio.to_thread
+        metadatas_arg = call.kwargs.get("metadatas")
 
     assert metadatas_arg is not None, "collection.add must be called with metadatas"
     for meta in metadatas_arg:

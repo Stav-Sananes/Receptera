@@ -88,6 +88,11 @@ plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_decorators = false
+# Test files intentionally use type: ignore for deliberate type violations
+# (e.g. passing str where Literal[...] expected to test runtime validation).
+# Pydantic's mypy plugin accepts these without error, so warn_unused_ignores
+# would fire spuriously. Disable for test scope only.
+warn_unused_ignores = false
 
 # Upstream untyped libraries (no py.typed marker). faster_whisper and
 # silero_vad ship without type stubs; their public surface we use is narrow.

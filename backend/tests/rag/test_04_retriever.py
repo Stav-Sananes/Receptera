@@ -4,11 +4,11 @@
 min_similarity filtering, settings default threshold, empty result path,
 source metadata shape, asyncio.to_thread wrap, and include= contract.
 """
-# ruff: noqa: RUF001
 
 from __future__ import annotations
 
 import asyncio
+import re
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -31,7 +31,12 @@ def _make_query_result(
     }
 
 
-def _meta(filename: str = "policy.md", idx: int = 0, cs: int = 0, ce: int = 10) -> dict:  # type: ignore[type-arg]
+def _meta(
+    filename: str = "policy.md",
+    idx: int = 0,
+    cs: int = 0,
+    ce: int = 10,
+) -> dict:  # type: ignore[type-arg]
     return {
         "filename": filename,
         "chunk_index": idx,
@@ -63,7 +68,10 @@ async def test_returns_chunkrefs() -> None:
     embedder = _fake_embedder()
     collection = _fake_collection(result)
 
-    refs = await retrieve(query="שלום", top_k=1, embedder=embedder, collection=collection, min_similarity=0.0)
+    refs = await retrieve(
+        query="שלום", top_k=1, embedder=embedder,
+        collection=collection, min_similarity=0.0,
+    )
     assert len(refs) == 1
     assert isinstance(refs[0], LlmChunkRef)
 
@@ -80,10 +88,14 @@ async def test_chunkref_class_identity() -> None:
     embedder = _fake_embedder()
     collection = _fake_collection(result)
 
-    refs = await retrieve(query="x", top_k=2, embedder=embedder, collection=collection, min_similarity=0.0)
+    refs = await retrieve(
+        query="x", top_k=2, embedder=embedder,
+        collection=collection, min_similarity=0.0,
+    )
     assert all(isinstance(r, LlmChunkRef) for r in refs)
     # Import via alias must be the SAME class
     from receptra.rag.types import ChunkRef as RagChunkRef
+
     assert LlmChunkRef is RagChunkRef
 
 
@@ -101,9 +113,11 @@ async def test_top_k_passed_to_collection() -> None:
     embedder = _fake_embedder()
     collection = _fake_collection()
 
-    await retrieve(query="x", top_k=7, embedder=embedder, collection=collection, min_similarity=0.0)
-    call_kwargs = collection.query.call_args[1] if collection.query.call_args[1] else {}
-    n_results = call_kwargs.get("n_results") or collection.query.call_args[0][1]
+    await retrieve(
+        query="x", top_k=7, embedder=embedder,
+        collection=collection, min_similarity=0.0,
+    )
+    n_results = collection.query.call_args.kwargs.get("n_results")
     assert n_results == 7
 
 
@@ -119,7 +133,10 @@ async def test_filters_below_min_similarity() -> None:
     embedder = _fake_embedder()
     collection = _fake_collection(result)
 
-    refs = await retrieve(query="x", top_k=3, embedder=embedder, collection=collection, min_similarity=0.4)
+    refs = await retrieve(
+        query="x", top_k=3, embedder=embedder,
+        collection=collection, min_similarity=0.4,
+    )
     assert len(refs) == 2  # 0.9 and 0.5 pass; 0.2 filtered out
 
 
@@ -130,9 +147,7 @@ async def test_uses_settings_default_threshold(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(config_mod.settings, "rag_min_similarity", 0.5)
     # similarity = 1 - 0.6 = 0.4 < 0.5 → filtered
-    result = _make_query_result(
-        ["id1"], ["chunk1"], [_meta()], [0.6]
-    )
+    result = _make_query_result(["id1"], ["chunk1"], [_meta()], [0.6])
     embedder = _fake_embedder()
     collection = _fake_collection(result)
 
@@ -156,13 +171,15 @@ async def test_empty_result_when_all_below_threshold() -> None:
     embedder = _fake_embedder()
     collection = _fake_collection(result)
 
-    refs = await retrieve(query="x", top_k=2, embedder=embedder, collection=collection, min_similarity=0.4)
+    refs = await retrieve(
+        query="x", top_k=2, embedder=embedder,
+        collection=collection, min_similarity=0.4,
+    )
     assert refs == []
 
 
 @pytest.mark.asyncio
 async def test_source_metadata_populated() -> None:
-    import re
     result = _make_query_result(
         ["abc:0"],
         ["chunk text"],
@@ -172,7 +189,10 @@ async def test_source_metadata_populated() -> None:
     embedder = _fake_embedder()
     collection = _fake_collection(result)
 
-    refs = await retrieve(query="x", top_k=1, embedder=embedder, collection=collection, min_similarity=0.0)
+    refs = await retrieve(
+        query="x", top_k=1, embedder=embedder,
+        collection=collection, min_similarity=0.0,
+    )
     assert len(refs) == 1
     src = refs[0].source
     assert src is not None
@@ -181,7 +201,8 @@ async def test_source_metadata_populated() -> None:
     assert src["char_start"] == "100"
     assert src["char_end"] == "200"
     # similarity must be a 3-decimal float string
-    assert re.match(r"^\d+\.\d{3}$", src["similarity"]), f"bad similarity format: {src['similarity']!r}"
+    sim = src["similarity"]
+    assert re.match(r"^\d+\.\d{3}$", sim), f"bad similarity format: {sim!r}"
 
 
 @pytest.mark.asyncio
@@ -198,9 +219,14 @@ async def test_collection_query_uses_to_thread() -> None:
         return await original_to_thread(func, *args, **kwargs)  # type: ignore[arg-type]
 
     with patch("receptra.rag.retriever.asyncio.to_thread", side_effect=recording_to_thread):
-        await retrieve(query="x", top_k=3, embedder=embedder, collection=collection, min_similarity=0.0)
+        await retrieve(
+            query="x", top_k=3, embedder=embedder,
+            collection=collection, min_similarity=0.0,
+        )
 
-    assert collection.query in to_thread_calls, "collection.query must go through asyncio.to_thread"
+    assert collection.query in to_thread_calls, (
+        "collection.query must go through asyncio.to_thread"
+    )
 
 
 @pytest.mark.asyncio
@@ -209,11 +235,11 @@ async def test_include_distances_metadatas_documents() -> None:
     embedder = _fake_embedder()
     collection = _fake_collection()
 
-    await retrieve(query="x", top_k=3, embedder=embedder, collection=collection, min_similarity=0.0)
+    await retrieve(
+        query="x", top_k=3, embedder=embedder,
+        collection=collection, min_similarity=0.0,
+    )
 
-    call_kwargs = collection.query.call_args[1] if collection.query.call_args[1] else {}
-    include = call_kwargs.get("include")
-    if include is None:
-        include = collection.query.call_args[0][2] if len(collection.query.call_args[0]) > 2 else None
+    include = collection.query.call_args.kwargs.get("include")
     assert include is not None
     assert set(include) == {"documents", "metadatas", "distances"}
