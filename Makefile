@@ -6,7 +6,7 @@ SHELL := /usr/bin/env bash
 
 .PHONY: help setup check-prereqs models models-whisper models-dictalm models-bge \
         models-fallback up down logs test lint typecheck format licenses clean \
-        eval-rag
+        eval-rag eval-intent eval-summary eval-all
 
 MODEL_DIR      ?= $(HOME)/.receptra/models
 DICTALM_QUANT  ?= Q4_K_M
@@ -84,17 +84,11 @@ models-bge:
 models-fallback:
 	MODEL_DIR=$(MODEL_DIR) scripts/download_models.sh qwen-fallback
 
-up: check-prereqs
-	@if ! pgrep -x ollama >/dev/null 2>&1; then \
-	  echo "Starting ollama server in background..."; \
-	  nohup ollama serve >/tmp/receptra-ollama.log 2>&1 & \
-	  sleep 2; \
-	fi
-	MODEL_DIR=$(MODEL_DIR) $(COMPOSE) up -d
-	@echo "✓ Stack up."
-	@echo "  Backend:   http://localhost:8080/healthz"
-	@echo "  Frontend:  http://localhost:5173"
-	@echo "  Chroma:    http://localhost:8000/api/v2/heartbeat"
+up:
+	@MODEL_DIR=$(MODEL_DIR) scripts/bootstrap.sh
+
+up-fast:
+	@MODEL_DIR=$(MODEL_DIR) scripts/bootstrap.sh --skip-models
 
 down:
 	$(COMPOSE) down
@@ -129,3 +123,12 @@ clean:
 
 eval-rag:
 	@cd backend && uv run python ../scripts/eval_rag.py --full --testclient
+
+eval-intent:
+	@cd backend && uv run python -m receptra.eval.intent_eval
+
+eval-summary:
+	@cd backend && uv run python -m receptra.eval.summary_eval
+
+eval-all: eval-rag eval-intent eval-summary
+	@echo "✓ All eval suites passed thresholds."

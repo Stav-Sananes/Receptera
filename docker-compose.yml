@@ -24,7 +24,14 @@ services:
     volumes:
       - ./data/chroma:/data
     healthcheck:
-      disable: true
+      # chromadb 1.5.8 image ships only bash (no curl/wget/python). Use
+      # bash's built-in /dev/tcp — port 8000 reachable means chromadb is
+      # listening. Cheap, no extra deps, ~1ms per probe.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8000 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
 
   backend:
     build:
@@ -53,7 +60,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       chromadb:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/healthz"]
       interval: 10s
