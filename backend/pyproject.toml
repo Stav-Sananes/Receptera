@@ -24,6 +24,9 @@ dependencies = [
     # tokenizers (RESEARCH §Cluster 1 anti-pattern). Server runs in its own
     # container per docker-compose.yml. Both publish identical 1.5.8.
     "chromadb-client>=1.5.8,<2",
+    "pypdf>=6.10.2,<7",
+    "python-docx>=1.2.0,<2",
+    "python-bidi>=0.6.7,<1",
 ]
 
 [dependency-groups]
