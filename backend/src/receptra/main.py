@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI, WebSocket
 
+from receptra.audit.router import router as audit_router
 from receptra.lifespan import lifespan
 from receptra.rag.routes import router as kb_router
 from receptra.stt.pipeline import websocket_stt_endpoint
@@ -21,6 +22,9 @@ app.include_router(kb_router, prefix="/api/kb", tags=["kb"])
 
 # Post-call Hebrew summary (Feature 3)
 app.include_router(summary_router)
+
+# Operator-facing audit stats — counts + latency aggregates.
+app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
 
 
 @app.get("/healthz")
