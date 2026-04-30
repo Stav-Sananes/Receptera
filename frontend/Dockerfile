@@ -19,14 +19,20 @@ RUN groupadd --system --gid 1001 receptra \
 
 WORKDIR /app
 
-# /app must be owned by the runtime user — Vite writes a vite.config.ts.timestamp-*.mjs
-# next to the config at startup, which fails with EACCES if the *directory* is root.
-# COPY --chown only chowns the files, not the WORKDIR itself.
+# /app must be owned by the runtime user — Vite writes
+#   /app/vite.config.ts.timestamp-*.mjs
+#   /app/node_modules/.vite/deps_temp_*
+# at startup. Both fail with EACCES if their parent directory is root.
+# COPY --chown only chowns copied paths, not the WORKDIR itself, and `npm ci`
+# (running as root) creates node_modules owned by root. So we chown twice:
+# once before npm ci so /app is writable for COPY, once after npm ci so the
+# generated node_modules/ tree belongs to the runtime user.
 RUN chown receptra:receptra /app
 
 # Dep install layer — cached when source changes but deps don't.
 COPY --chown=receptra:receptra package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund \
+    && chown -R receptra:receptra /app/node_modules
 
 # Source
 COPY --chown=receptra:receptra . .
