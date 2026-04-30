@@ -25,9 +25,31 @@ import type {
   WsStatus,
 } from '../types/ws'
 
+/**
+ * Build the /ws/stt URL with an optional agent_id query param so the
+ * supervisor dashboard groups events under a stable identity per browser.
+ *
+ * agent_id is persisted in localStorage so refreshing the tab keeps the
+ * same identity. Override via ?agent_id=NAME in the URL once.
+ */
+function _agentId(): string {
+  if (typeof window === 'undefined') return 'agent-anon'
+  const fromUrl = new URLSearchParams(window.location.search).get('agent_id')
+  if (fromUrl) {
+    window.localStorage.setItem('receptra:agent_id', fromUrl)
+    return fromUrl
+  }
+  let id = window.localStorage.getItem('receptra:agent_id')
+  if (!id) {
+    id = `agent-${Math.random().toString(36).slice(2, 8)}`
+    window.localStorage.setItem('receptra:agent_id', id)
+  }
+  return id
+}
+
 const WS_URL =
   typeof window !== 'undefined'
-    ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/stt`
+    ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/stt?agent_id=${encodeURIComponent(_agentId())}`
     : 'ws://localhost:5173/ws/stt'
 
 export interface WsState {

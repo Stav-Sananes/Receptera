@@ -23,12 +23,23 @@ import { WebhookPanel } from './components/WebhookPanel'
 import { StatusBar } from './components/StatusBar'
 import { SummaryPanel } from './components/SummaryPanel'
 import { SuggestionPanel } from './components/SuggestionPanel'
+import { SupervisorView } from './components/SupervisorView'
 import { TranscriptPanel } from './components/TranscriptPanel'
 import { useAudioCapture } from './hooks/useAudioCapture'
 import { useCallHistory } from './hooks/useCallHistory'
 import { useWebSocket } from './hooks/useWebSocket'
 
 export default function App() {
+  // Simple URL-param routing: ?view=supervisor → operator dashboard.
+  // Two separate trees so hooks fire in stable order per route.
+  const isSupervisor =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('view') === 'supervisor'
+  if (isSupervisor) return <SupervisorView />
+  return <AgentApp />
+}
+
+function AgentApp() {
   const ws = useWebSocket()
   const audio = useAudioCapture()
   const history = useCallHistory()
@@ -137,6 +148,17 @@ export default function App() {
         onStart={() => void handleStart()}
         onStop={handleStop}
       />
+
+      {/* Supervisor link — agents typically don't click this; managers open
+          ?view=supervisor on a separate machine. Kept inline for discoverability. */}
+      <div className="border-b border-gray-200 bg-white px-3 py-1 flex justify-end">
+        <a
+          href="?view=supervisor"
+          className="text-xs text-blue-600 hover:underline"
+        >
+          תצוגת מפקח →
+        </a>
+      </div>
 
       {/* Main two-column layout */}
       <div className="grid flex-1 grid-cols-2 gap-3 overflow-hidden p-3">

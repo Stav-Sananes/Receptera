@@ -60,6 +60,7 @@ from receptra.stt.metrics import (
     utc_now_iso,
 )
 from receptra.stt.vad import FRAME_BYTES, InvalidFrameError, StreamingVad
+from receptra.supervisor.bus import bus as supervisor_bus
 
 # RESEARCH §7 — Whisper quality degrades on <500 ms of audio. The first
 # partial fires only once the speech buffer crosses this floor; below it
@@ -103,6 +104,22 @@ async def websocket_stt_endpoint(ws: WebSocket) -> None:
     in the ``finally`` block.
     """
     await ws.accept()
+
+    # Each WS connection = one agent session for the supervisor dashboard.
+    # Honour ?agent_id=foo from the client (e.g. "agent-david"), otherwise
+    # generate a random short id so multiple anonymous browsers don't collide.
+    import uuid
+
+    agent_id = ws.query_params.get("agent_id") or f"agent-{uuid.uuid4().hex[:8]}"
+    from datetime import UTC
+    from datetime import datetime as _dt
+    await supervisor_bus.publish(
+        {
+            "type": "agent_connected",
+            "agent_id": agent_id,
+            "ts_utc": _dt.now(UTC).isoformat(),
+        }
+    )
 
     # T-02-06-06 — lazy idempotent SQLite init on every connection accept.
     # Cheap (single CREATE TABLE IF NOT EXISTS) and ensures the parent dir
@@ -151,10 +168,10 @@ async def websocket_stt_endpoint(ws: WebSocket) -> None:
     # Both embedder and chroma_collection may be None (INT-04 graceful degradation).
     embedder = getattr(ws.app.state, "embedder", None)
     chroma_collection = getattr(ws.app.state, "chroma_collection", None)
-    suggest = make_suggest_fn(ws, embedder, chroma_collection)
+    suggest = make_suggest_fn(ws, embedder, chroma_collection, agent_id=agent_id)
 
     try:
-        await run_utterance_loop(ws, vad, transcribe, suggest=suggest)
+        await run_utterance_loop(ws, vad, transcribe, suggest=suggest, agent_id=agent_id)
     except WebSocketDisconnect:
         logger.bind(event="stt.ws.disconnect").info({"msg": "client disconnected"})
     except Exception as e:  # pragma: no cover — defensive last-line catch
@@ -166,6 +183,14 @@ async def websocket_stt_endpoint(ws: WebSocket) -> None:
         # to this connection so reset is technically redundant, but the
         # explicit call documents the per-connection isolation contract.
         vad.reset()
+        with contextlib.suppress(Exception):
+            await supervisor_bus.publish(
+                {
+                    "type": "agent_disconnected",
+                    "agent_id": agent_id,
+                    "ts_utc": _dt.now(UTC).isoformat(),
+                }
+            )
         with contextlib.suppress(Exception):  # already-closed paths
             await ws.close()
 
@@ -176,6 +201,7 @@ async def run_utterance_loop(
     transcribe: TranscribeFn,
     *,
     suggest: SuggestFn | None = None,
+    agent_id: str | None = None,
 ) -> None:
     """Drive the VAD-gated incremental re-transcribe loop on one connection.
 
@@ -303,6 +329,20 @@ async def run_utterance_loop(
                 ).model_dump()
             )
 
+            # Supervisor bus fan-out — non-blocking, dropped on slow subscriber.
+            if agent_id:
+                with contextlib.suppress(Exception):
+                    await supervisor_bus.publish(
+                        {
+                            "type": "utterance_final",
+                            "agent_id": agent_id,
+                            "utterance_id": utterance_id,
+                            "text": text,
+                            "stt_latency_ms": stt_latency_ms,
+                            "duration_ms": duration_ms,
+                        }
+                    )
+
             # STT-06 — emit per-utterance metrics + audit row AFTER the
             # final has reached the wire. log_utterance is in-process
             # (~µs), insert is sync sqlite3 (~ms). Both wrapped in
@@ -342,7 +382,9 @@ async def run_utterance_loop(
                 try:
                     results = await asyncio.gather(
                         suggest(text, t_speech_end_ms, utterance_id),
-                        detect_intent_and_send(text, ws, utterance_id),
+                        detect_intent_and_send(
+                            text, ws, utterance_id, agent_id=agent_id
+                        ),
                         return_exceptions=True,
                     )
                     for r in results:

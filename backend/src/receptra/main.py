@@ -9,6 +9,8 @@ from receptra.lifespan import lifespan
 from receptra.rag.routes import router as kb_router
 from receptra.stt.pipeline import websocket_stt_endpoint
 from receptra.summary.router import router as summary_router
+from receptra.supervisor.router import router as supervisor_router
+from receptra.supervisor.router import supervisor_ws as _supervisor_ws_handler
 from receptra.webhooks.router import router as webhooks_router
 
 app = FastAPI(
@@ -29,6 +31,15 @@ app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
 
 # Outbound CRM webhook (v1.2) — config status + manual test trigger.
 app.include_router(webhooks_router, prefix="/api/webhooks", tags=["webhooks"])
+
+# Supervisor live dashboard (v1.2 #3) — REST status + WS event stream.
+app.include_router(supervisor_router, prefix="/api/supervisor", tags=["supervisor"])
+
+
+@app.websocket("/ws/supervisor")
+async def ws_supervisor(websocket: WebSocket) -> None:
+    """Live multi-agent event stream (v1.2 #3)."""
+    await _supervisor_ws_handler(websocket)
 
 
 @app.get("/healthz")

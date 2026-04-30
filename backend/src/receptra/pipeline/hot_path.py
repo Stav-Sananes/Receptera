@@ -62,6 +62,8 @@ def make_suggest_fn(
     ws: object,  # FastAPI WebSocket; typed as object to avoid heavy import at module level
     embedder: BgeM3Embedder | None,
     collection: Collection | None,
+    *,
+    agent_id: str | None = None,
 ) -> SuggestFn:
     """Build a per-connection suggest callback.
 
@@ -170,6 +172,20 @@ def make_suggest_fn(
                         )
                     except Exception:
                         return  # client disconnected
+                    # Supervisor bus fan-out — operators see e2e latency live.
+                    if agent_id:
+                        from receptra.supervisor.bus import bus as _bus
+                        with contextlib.suppress(Exception):
+                            await _bus.publish(
+                                {
+                                    "type": "suggestion_complete",
+                                    "agent_id": agent_id,
+                                    "utterance_id": utterance_id,
+                                    "e2e_latency_ms": e2e_latency_ms,
+                                    "rag_low_confidence": low_confidence,
+                                    "n_suggestions": n_suggestions,
+                                }
+                            )
 
                 elif isinstance(event, LlmErrorEvent):
                     llm_status = event.code

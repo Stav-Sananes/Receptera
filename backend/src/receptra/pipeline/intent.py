@@ -105,10 +105,13 @@ async def detect_intent_and_send(
     transcript: str,
     ws: object,  # FastAPI WebSocket; typed as object to avoid heavy import
     utterance_id: str,
+    *,
+    agent_id: str | None = None,
 ) -> None:
     """Classify intent and fire one ``intent_detected`` event on the WebSocket.
 
     All exceptions are swallowed — intent failure must not crash the pipeline.
+    Also publishes the same event to the supervisor bus when ``agent_id`` is set.
     """
     with contextlib.suppress(Exception):
         try:
@@ -126,6 +129,19 @@ async def detect_intent_and_send(
             utterance_id=utterance_id,
         )
         await ws.send_json(event.model_dump())  # type: ignore[attr-defined]
+
+        if agent_id:
+            from receptra.supervisor.bus import bus as _bus
+            with contextlib.suppress(Exception):
+                await _bus.publish(
+                    {
+                        "type": "intent_detected",
+                        "agent_id": agent_id,
+                        "utterance_id": utterance_id,
+                        "label": label,
+                        "label_he": label_he,
+                    }
+                )
 
 
 __all__ = ["INTENT_LABELS", "detect_intent", "detect_intent_and_send"]
