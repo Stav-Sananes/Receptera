@@ -74,3 +74,40 @@ export async function searchKb(query: string, topK = 5): Promise<KbSearchResult[
   })
   return _unwrap<KbSearchResult[]>(res)
 }
+
+export interface KbChunkRow {
+  id: string
+  text: string
+  chunk_index: number
+  source: Record<string, string>
+}
+
+/** Inspect all chunks for one document (admin). Sorted by chunk_index. */
+export async function getDocumentChunks(filename: string): Promise<KbChunkRow[]> {
+  const res = await fetch(`${BASE}/documents/${encodeURIComponent(filename)}/chunks`)
+  return _unwrap<KbChunkRow[]>(res)
+}
+
+/** Bulk delete by filename array. Returns total chunks removed. */
+export async function bulkDelete(filenames: string[]): Promise<{ deleted: number }> {
+  const res = await fetch(`${BASE}/bulk-delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filenames }),
+  })
+  return _unwrap<{ deleted: number }>(res)
+}
+
+export interface KbStats {
+  n_documents: number
+  n_chunks: number
+  total_bytes: number
+  oldest_ingest: string | null
+  newest_ingest: string | null
+}
+
+/** Aggregate KB stats — doc/chunk counts, total bytes, oldest/newest ingest. */
+export async function getKbStats(): Promise<KbStats> {
+  const res = await fetch(`${BASE}/stats`)
+  return _unwrap<KbStats>(res)
+}

@@ -264,3 +264,103 @@ def test_health_chroma_down(
     body = resp.json()
     assert body["chroma"] == "down"
     assert body["collection_count"] == -1
+
+
+# ---------------------------------------------------------------------------
+# GET /api/kb/documents/{filename}/chunks  — admin inspector
+# ---------------------------------------------------------------------------
+
+
+def test_get_document_chunks_returns_sorted_by_index(
+    client: TestClient, fake_collection: MagicMock
+) -> None:
+    """Out-of-order chunks → sorted by chunk_index ascending."""
+    fake_collection.get.return_value = {
+        "ids": ["abc:2", "abc:0", "abc:1"],
+        "documents": ["chunk-2-text", "chunk-0-text", "chunk-1-text"],
+        "metadatas": [_meta("p.md", 2), _meta("p.md", 0), _meta("p.md", 1)],
+    }
+    resp = client.get("/api/kb/documents/p.md/chunks")
+    assert resp.status_code == 200
+    rows = resp.json()
+    assert [r["chunk_index"] for r in rows] == [0, 1, 2]
+    assert rows[0]["text"] == "chunk-0-text"
+
+
+def test_get_document_chunks_empty(
+    client: TestClient, fake_collection: MagicMock
+) -> None:
+    fake_collection.get.return_value = {"ids": [], "documents": [], "metadatas": []}
+    resp = client.get("/api/kb/documents/missing.md/chunks")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+# ---------------------------------------------------------------------------
+# POST /api/kb/bulk-delete
+# ---------------------------------------------------------------------------
+
+
+def test_bulk_delete_removes_all_listed_files(
+    client: TestClient, fake_collection: MagicMock
+) -> None:
+    """Two filenames → two get() calls, two delete() calls, total counted."""
+    fake_collection.get.side_effect = [
+        {"ids": ["a:0", "a:1"]},
+        {"ids": ["b:0"]},
+    ]
+    resp = client.post("/api/kb/bulk-delete", json={"filenames": ["a.md", "b.md"]})
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": 3}
+    assert fake_collection.delete.call_count == 2
+
+
+def test_bulk_delete_empty_request_returns_zero(
+    client: TestClient, fake_collection: MagicMock
+) -> None:
+    resp = client.post("/api/kb/bulk-delete", json={"filenames": []})
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": 0}
+    fake_collection.get.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# GET /api/kb/stats
+# ---------------------------------------------------------------------------
+
+
+def test_kb_stats_aggregates_by_filename(
+    client: TestClient, fake_collection: MagicMock
+) -> None:
+    fake_collection.get.return_value = {
+        "documents": ["שלום עולם", "תוכן רלוונטי", "עוד תוכן"],
+        "metadatas": [
+            {**_meta("faq.md", 0), "ingested_at_iso": "2026-04-27T10:00:00+00:00"},
+            {**_meta("faq.md", 1), "ingested_at_iso": "2026-04-27T10:00:00+00:00"},
+            {**_meta("policy.md", 0), "ingested_at_iso": "2026-04-28T10:00:00+00:00"},
+        ],
+    }
+    resp = client.get("/api/kb/stats")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["n_documents"] == 2
+    assert body["n_chunks"] == 3
+    assert body["total_bytes"] > 0
+    assert body["oldest_ingest"] == "2026-04-27T10:00:00+00:00"
+    assert body["newest_ingest"] == "2026-04-28T10:00:00+00:00"
+
+
+def test_kb_stats_empty_collection(
+    client: TestClient, fake_collection: MagicMock
+) -> None:
+    fake_collection.get.return_value = {"documents": [], "metadatas": []}
+    resp = client.get("/api/kb/stats")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body == {
+        "n_documents": 0,
+        "n_chunks": 0,
+        "total_bytes": 0,
+        "oldest_ingest": None,
+        "newest_ingest": None,
+    }

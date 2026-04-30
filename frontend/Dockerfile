@@ -19,6 +19,11 @@ RUN groupadd --system --gid 1001 receptra \
 
 WORKDIR /app
 
+# /app must be owned by the runtime user — Vite writes a vite.config.ts.timestamp-*.mjs
+# next to the config at startup, which fails with EACCES if the *directory* is root.
+# COPY --chown only chowns the files, not the WORKDIR itself.
+RUN chown receptra:receptra /app
+
 # Dep install layer — cached when source changes but deps don't.
 COPY --chown=receptra:receptra package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund

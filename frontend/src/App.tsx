@@ -16,7 +16,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CallSummary } from './api/summary'
 import { generateSummary } from './api/summary'
 import { HistoryPanel } from './components/HistoryPanel'
-import { KbPanel } from './components/KbPanel'
+import { KbAdminPanel } from './components/KbAdminPanel'
 import { KbSearchBox } from './components/KbSearchBox'
 import { StatsPanel } from './components/StatsPanel'
 import { StatusBar } from './components/StatusBar'
@@ -168,9 +168,9 @@ export default function App() {
         </div>
       )}
 
-      {/* KB management panel (collapsible) */}
+      {/* KB admin panel (drag-drop, bulk delete, chunk inspector, test query) */}
       <div className="border-t border-gray-200 p-3">
-        <KbPanel />
+        <KbAdminPanel />
       </div>
     </div>
   )

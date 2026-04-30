@@ -148,6 +148,37 @@ async def list_documents(request: Request) -> list[KbDocument]:
     ]
 
 
+@router.get("/documents/{filename}/chunks")
+async def get_document_chunks(request: Request, filename: str) -> list[dict[str, Any]]:
+    """Return all chunks for one filename (admin inspector). Sorted by chunk_index."""
+    collection = request.app.state.chroma_collection
+    try:
+        result = await asyncio.to_thread(
+            collection.get,
+            where={"filename": filename},
+            include=["documents", "metadatas"],
+        )
+    except Exception as e:
+        raise _rag_init_to_http(
+            RagInitError(code="chroma_unreachable", detail=str(e))
+        ) from e
+
+    ids = result.get("ids") or []
+    docs = result.get("documents") or []
+    metas = result.get("metadatas") or []
+
+    rows = []
+    for cid, text, meta in zip(ids, docs, metas, strict=False):
+        idx_str = (meta or {}).get("chunk_index", "0")
+        try:
+            idx = int(idx_str)
+        except (TypeError, ValueError):
+            idx = 0
+        rows.append({"id": cid, "text": text, "chunk_index": idx, "source": meta or {}})
+    rows.sort(key=lambda r: r["chunk_index"])
+    return rows
+
+
 @router.delete("/documents/{filename}")
 async def delete_document(request: Request, filename: str) -> dict[str, int]:
     """Remove all chunks for a given filename. Returns {deleted: int}."""
@@ -201,6 +232,69 @@ async def query_kb(
     })
 
     return [{"id": r.id, "text": r.text, "source": r.source} for r in results]
+
+
+@router.post("/bulk-delete")
+async def bulk_delete(request: Request, body: dict[str, list[str]]) -> dict[str, int]:
+    """Delete chunks for many filenames in one round-trip. Returns total deleted."""
+    filenames = body.get("filenames", [])
+    if not filenames:
+        return {"deleted": 0}
+    collection = request.app.state.chroma_collection
+    total = 0
+    try:
+        for fn in filenames:
+            existing = await asyncio.to_thread(collection.get, where={"filename": fn})
+            ids = existing.get("ids") or []
+            if ids:
+                await asyncio.to_thread(collection.delete, ids=ids)
+                total += len(ids)
+    except Exception as e:
+        raise _rag_init_to_http(
+            RagInitError(code="chroma_unreachable", detail=str(e))
+        ) from e
+    logger.bind(event="rag.bulk_delete").info({"n_files": len(filenames), "deleted": total})
+    return {"deleted": total}
+
+
+@router.get("/stats")
+async def kb_stats(request: Request) -> dict[str, Any]:
+    """Aggregate KB stats: doc count, chunk count, total bytes (approx), oldest/newest."""
+    collection = request.app.state.chroma_collection
+    try:
+        result = await asyncio.to_thread(
+            collection.get, include=["documents", "metadatas"]
+        )
+    except Exception as e:
+        raise _rag_init_to_http(
+            RagInitError(code="chroma_unreachable", detail=str(e))
+        ) from e
+
+    docs = result.get("documents") or []
+    metas = result.get("metadatas") or []
+
+    by_filename: dict[str, dict[str, Any]] = {}
+    total_bytes = 0
+    for text, meta in zip(docs, metas, strict=False):
+        if text:
+            total_bytes += len(text.encode("utf-8"))
+        fn = (meta or {}).get("filename")
+        if not fn:
+            continue
+        entry = by_filename.setdefault(fn, {"chunks": 0, "ts": ""})
+        entry["chunks"] += 1
+        ts = (meta or {}).get("ingested_at_iso", "")
+        if ts and (not entry["ts"] or ts > entry["ts"]):
+            entry["ts"] = ts
+
+    timestamps = [v["ts"] for v in by_filename.values() if v["ts"]]
+    return {
+        "n_documents": len(by_filename),
+        "n_chunks": len(docs),
+        "total_bytes": total_bytes,
+        "oldest_ingest": min(timestamps) if timestamps else None,
+        "newest_ingest": max(timestamps) if timestamps else None,
+    }
 
 
 @router.get("/health")
