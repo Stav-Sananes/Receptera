@@ -14,11 +14,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CallSummary } from './api/summary'
-import { generateSummary } from './api/summary'
+import { generateSummaryV2 } from './api/summary'
 import { HistoryPanel } from './components/HistoryPanel'
 import { KbAdminPanel } from './components/KbAdminPanel'
 import { KbSearchBox } from './components/KbSearchBox'
 import { StatsPanel } from './components/StatsPanel'
+import { WebhookPanel } from './components/WebhookPanel'
 import { StatusBar } from './components/StatusBar'
 import { SummaryPanel } from './components/SummaryPanel'
 import { SuggestionPanel } from './components/SuggestionPanel'
@@ -80,14 +81,27 @@ export default function App() {
     setSummaryLoading(true)
     setSummaryError(null)
     try {
-      const result = await generateSummary(ws.finals.map((f) => f.text))
+      // v1.2: send full webhook context so the backend can fire the CRM
+      // webhook with intent + per-utterance metadata, not just plain text.
+      const result = await generateSummaryV2({
+        transcript_lines: ws.finals.map((f) => f.text),
+        call_id: callIdRef.current ?? undefined,
+        finals_meta: ws.finals.map((f) => ({
+          text: f.text,
+          duration_ms: f.duration_ms,
+          stt_latency_ms: f.stt_latency_ms,
+        })),
+        intent: ws.latestIntent
+          ? { label: ws.latestIntent.label, label_he: ws.latestIntent.label_he }
+          : undefined,
+      })
       setSummary(result)
     } catch (err) {
       setSummaryError(err instanceof Error ? err.message : String(err))
     } finally {
       setSummaryLoading(false)
     }
-  }, [ws.finals])
+  }, [ws.finals, ws.latestIntent])
 
   // Auto-end-call: when the agent disconnects (clicked Stop) AND we have
   // finals AND haven't generated a summary yet, fire it automatically.
@@ -151,10 +165,11 @@ export default function App() {
         </div>
       )}
 
-      {/* Manual KB search + operator stats */}
+      {/* Manual KB search + operator stats + webhook config */}
       <div className="border-t border-gray-200 px-3 py-2 space-y-2">
         <KbSearchBox />
         <StatsPanel />
+        <WebhookPanel />
       </div>
 
       {/* Past calls (localStorage-backed) */}

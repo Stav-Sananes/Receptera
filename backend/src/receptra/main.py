@@ -9,6 +9,7 @@ from receptra.lifespan import lifespan
 from receptra.rag.routes import router as kb_router
 from receptra.stt.pipeline import websocket_stt_endpoint
 from receptra.summary.router import router as summary_router
+from receptra.webhooks.router import router as webhooks_router
 
 app = FastAPI(
     title="Receptra",
@@ -25,6 +26,9 @@ app.include_router(summary_router)
 
 # Operator-facing audit stats — counts + latency aggregates.
 app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
+
+# Outbound CRM webhook (v1.2) — config status + manual test trigger.
+app.include_router(webhooks_router, prefix="/api/webhooks", tags=["webhooks"])
 
 
 @app.get("/healthz")

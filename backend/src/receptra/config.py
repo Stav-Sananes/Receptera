@@ -105,5 +105,21 @@ class Settings(BaseSettings):
     # Adjust via RECEPTRA_RAG_EMBED_BATCH_SIZE only if Wave-0 spike pushes higher.
     rag_embed_batch_size: int = 16
 
+    # --- v1.2 CRM webhook ---
+    # When set, Receptra POSTs a JSON envelope (call_id, ts_utc, finals, intent,
+    # summary) to this URL after every successful /api/summary call. Empty = off.
+    # Use any HTTPS endpoint (Make/Zapier/n8n/custom CRM). Receptra never
+    # initiates outbound traffic to anywhere else when the value is empty —
+    # the air-gap thesis stays intact unless you explicitly opt in.
+    webhook_url: str = ""
+
+    # HMAC-SHA256 shared secret. When non-empty, the request includes header
+    # X-Receptra-Signature: sha256=<hex>. Receivers MUST verify this to prevent
+    # spoofing. Empty disables signing (don't ship to production without one).
+    webhook_secret: str = ""
+
+    # Outbound timeout per attempt. 3 retries with exp backoff (1s, 2s, 4s).
+    webhook_timeout_s: float = 5.0
+
 
 settings = Settings()
